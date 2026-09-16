@@ -37,3 +37,9 @@ not the HK-TM application itself (Session 6/7). The RTEMS build does not
 run here: beagleboneblack boots over TFTP on real hardware, not under
 QEMU. Unit tests only build for the host and are skipped when
 cross-compiling.
+
+If `mkimage` is available (Debian/Ubuntu: `sudo apt install u-boot-tools`),
+the same build also produces `rtems_smoke.img`: the ELF stripped to a raw
+binary, gzipped, and wrapped as a U-Boot loadable kernel image, ready to
+TFTP-boot on real beagleboneblack hardware. Without `mkimage` this step is
+skipped with a status message; the ELF build is unaffected either way.
