@@ -19,6 +19,9 @@ void hk_manager_init(void);    /* reporting starts DISABLED (SR-120) */
 void hk_manager_on_tick(void); /* called by the scheduler each tick */
 bool hk_manager_reports_enabled(void);
 
+/* Set by the Command Handler under a critical section (SR-100, SR-110). */
+void hk_manager_set_reports_enabled(bool enabled);
+
 #ifdef __cplusplus
 }
 #endif
