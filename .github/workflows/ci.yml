@@ -18,4 +18,5 @@ jobs:
       - name: Static analysis
         run: |
           cppcheck --enable=all --inconclusive --error-exitcode=1 \
+            -I src/app/include \
             --suppressions-list=ci/cppcheck-suppressions.txt src/app
