@@ -1,0 +1,10 @@
+# cppcheck suppressions for the HK-TM service (docs/coding-standard.md S3).
+# One suppression per line: <id>[:<file-glob>]
+# missingIncludeSystem: cppcheck cannot see the host's system headers
+# (stdbool.h, stdint.h, ...) without a full include-path replica of the
+# target toolchain; the compiler itself already enforces these includes.
+missingIncludeSystem
+# unusedFunction: hk_manager_*/hk_command_dispatch are the public interface
+# consumed by the RTEMS task wrappers added in Session 7, not by anything
+# in src/app yet; whole-program analysis can't see that future caller.
+unusedFunction

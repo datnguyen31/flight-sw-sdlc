@@ -14,9 +14,9 @@
 
 rtems_task Init(rtems_task_argument arg)
 {
-  (void)arg;
-  printk("HK-TM RTEMS build-integration smoke test OK\n");
-  exit(0);
+    (void)arg;
+    printk("HK-TM RTEMS build-integration smoke test OK\n");
+    exit(0);
 }
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
