@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Coding Standard
 
 This closes HKS-SR-170. It is short on purpose: a standard that is read and
@@ -16,9 +15,9 @@ reviewer sign-off, consistent with ECSS-Q-ST-80C product assurance
 practice. A deviation without a recorded rationale and sign-off is a
 finding at review, not an allowance.
 
-| Rule | Location | Rationale | Reviewer |
-|---|---|---|---|
-| _(none yet)_ | | | |
+| Rule         | Location | Rationale | Reviewer |
+| ------------ | -------- | --------- | -------- |
+| _(none yet)_ |          |           |          |
 
 ## 2. House rules
 
@@ -104,6 +103,3 @@ clang-tidy ...
 Flight code must build and analyze clean, or carry a logged deviation per
 Section 1. These gates are wired into the pipeline in Session 6, which is
 also where the unit-test harness is properly enabled.
-=======
-# Coding Standard (MISRA C:2012 subset) - to be detailed in Session 6
->>>>>>> main
