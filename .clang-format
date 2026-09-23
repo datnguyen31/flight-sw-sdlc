@@ -35,6 +35,7 @@ IncludeIsMainRegex: '$'
 IndentCaseLabels: true
 IndentPPDirectives: None
 IndentWidth:     4
+InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: true
 MacroBlockBegin: ''
 MacroBlockEnd:   ''
