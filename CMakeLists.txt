@@ -8,6 +8,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_compile_options(-Wall -Wextra)
 
+# Coding standard S3: compiler warnings as the first enforcement line,
+# applied to all flight code (logic library and RTEMS image).
+set(HK_STRICT_WARNINGS -Wall -Wextra -Werror -Wconversion -Wshadow -Wpedantic)
+
 add_subdirectory(src/app)
 add_subdirectory(src/fdir)
 

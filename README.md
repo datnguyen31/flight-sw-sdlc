@@ -24,22 +24,34 @@ cmake --build build
 ctest --test-dir build
 ```
 
-Cross-build for RTEMS 6, BSP arm/beagleboneblack (DD-08), against the
-toolchain installed at `/opt/rtems6`:
+Cross-build for RTEMS 7, BSP sparc/leon3 (DD-09), against the toolchain
+installed at `/opt/rtems7`, and run end to end on Renode:
 
 ```sh
-cmake -S . -B build-rtems -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-rtems-beagleboneblack.cmake
-cmake --build build-rtems
+cmake -S . -B build-target -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-rtems.cmake
+cmake --build build-target
+RENODE=/path/to/renode tools/renode/run_hk_app.sh   # or: cmake --build build-target --target run_renode
 ```
 
-This produces `src/app/rtems/rtems_smoke`, a build-integration smoke image,
-not the HK-TM application itself (Session 6/7). The RTEMS build does not
-run here: beagleboneblack boots over TFTP on real hardware, not under
-QEMU. Unit tests only build for the host and are skipped when
-cross-compiling.
+This produces `build-target/src/app/rtems/hk_app.exe`, the HK-TM service
+image, then runs it for 27 s of virtual time on Renode's LEON3 platform. The
+image's `Init` plays a scripted ground station: ENABLE_REPORTS, an unknown
+telecommand, then DISABLE_REPORTS. `tools/hk_tm_decode.py` then decodes every
+`TM` packet on the console independently of the flight encoder and checks
+it. To watch it interactively instead:
 
-If `mkimage` is available (Debian/Ubuntu: `sudo apt install u-boot-tools`),
-the same build also produces `rtems_smoke.img`: the ELF stripped to a raw
-binary, gzipped, and wrapped as a U-Boot loadable kernel image, ready to
-TFTP-boot on real beagleboneblack hardware. Without `mkimage` this step is
-skipped with a status message; the ELF build is unaffected either way.
+```sh
+renode -e '$bin=@build-target/src/app/rtems/hk_app.exe; include @tools/renode/hk_leon3.resc; showAnalyzer uart; start'
+```
+
+Other installed BSPs use the same toolchain file, e.g. `-DRTEMS_BSP=erc32`
+(runs under `sparc-rtems7-sis -r`). For RTEMS 6 arm/beagleboneblack on real
+hardware (DD-08), use the preset
+`-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-rtems-beagleboneblack.cmake`. If
+`mkimage` is available (`sudo apt install u-boot-tools`), that build also
+produces `hk_app.img`, a U-Boot loadable image ready to TFTP-boot.
+
+Unit tests only build for the host and are skipped when cross-compiling.
+CI runs the target build and the Renode run in the `target-build` job, using
+the image from `tools/docker/rtems7-leon3.Dockerfile`. That job is skipped
+until the repository variable `RTEMS_TOOLCHAIN_IMAGE` names a published image.

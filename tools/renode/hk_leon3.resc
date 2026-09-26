@@ -1,0 +1,24 @@
+:name: HK-TM on LEON3
+:description: RTEMS 7 sparc/leon3 HK-TM service image on Renode's LEON3 platform (DD-09)
+
+# Set $bin before including this script, e.g.
+#   renode -e '$bin=@build-target/src/app/rtems/hk_app.exe; include @tools/renode/hk_leon3.resc; showAnalyzer uart; start'
+# tools/renode/run_hk_app.sh does the same headless and decodes the output.
+
+$uart_log?=@hk_uart.log
+
+mach create "leon3"
+machine LoadPlatformDescription @platforms/cpus/leon3.repl
+sysbus LoadELF $bin
+
+# Boot-loader duties. On hardware GRMON or mkprom leaves the processor in
+# this state before jumping to the RTEMS image; Renode starts it raw.
+#  1. %sp (%o6, register 14) at the top of RAM: RTEMS sparc start.S takes
+#     the initial %sp as the end of usable RAM for the work area. 64 MiB.
+#  2. GPTIMER prescaler at 50 MHz / (49 + 1) = 1 MHz: the leon3 BSP derives
+#     the bus frequency and its 1 us timer tick from this value.
+cpu SetRegister 14 0x43FFFFF0
+sysbus WriteDoubleWord 0x80000304 49
+sysbus WriteDoubleWord 0x80000300 49
+
+uart CreateFileBackend $uart_log true

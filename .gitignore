@@ -31,3 +31,6 @@ _deps/
 .idea/
 *.swp
 .DS_Store
+
+# Others
+MY_NOTE.md

@@ -13,11 +13,12 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* Accept one fully encoded TM packet for downlink. Returns true if accepted. */
-bool hk_tm_sink_send(const uint8_t *packet, size_t length);
+    /* Accept one fully encoded TM packet for downlink. Returns true if accepted. */
+    bool hk_tm_sink_send(const uint8_t* packet, size_t length);
 
 #ifdef __cplusplus
 }

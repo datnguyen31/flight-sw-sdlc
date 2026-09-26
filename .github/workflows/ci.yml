@@ -18,5 +18,24 @@ jobs:
       - name: Static analysis
         run: |
           cppcheck --enable=all --inconclusive --error-exitcode=1 \
-            -I src/app/include \
+            -I src/app/include -I src/app/tasks \
             --suppressions-list=ci/cppcheck-suppressions.txt src/app
+
+  # Cross-compile for RTEMS 7 sparc/leon3 and run the image end to end on
+  # Renode, so a change that builds on the host but breaks the target is
+  # caught. Uses the prebuilt toolchain image from
+  # tools/docker/rtems7-leon3.Dockerfile; the job is skipped until the
+  # repository variable RTEMS_TOOLCHAIN_IMAGE names a published image.
+  target-build:
+    if: ${{ vars.RTEMS_TOOLCHAIN_IMAGE != '' }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.RTEMS_TOOLCHAIN_IMAGE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (RTEMS 7, sparc/leon3)
+        run: cmake -S . -B build-target -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-rtems.cmake
+      - name: Build
+        run: cmake --build build-target
+      - name: End-to-end run on Renode
+        run: tools/renode/run_hk_app.sh build-target/src/app/rtems/hk_app.exe

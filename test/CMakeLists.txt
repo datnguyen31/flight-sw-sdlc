@@ -4,10 +4,19 @@ FetchContent_Declare(unity
     GIT_TAG        v2.6.0)
 FetchContent_MakeAvailable(unity)
 
-add_executable(test_hk_command unit/test_hk_command.c)
-target_link_libraries(test_hk_command PRIVATE app unity)
-add_test(NAME test_hk_command COMMAND test_hk_command)
+# Stub parameter source and capture telemetry sink, linked only into tests.
+add_library(hk_test_doubles STATIC support/hk_test_doubles.c)
+target_include_directories(hk_test_doubles PUBLIC support)
+target_link_libraries(hk_test_doubles PUBLIC app)
 
-add_executable(test_hk_manager unit/test_hk_manager.c)
-target_link_libraries(test_hk_manager PRIVATE app unity)
-add_test(NAME test_hk_manager COMMAND test_hk_manager)
+foreach(name
+    test_hk_command
+    test_hk_manager
+    test_hk_sampler
+    test_hk_report_builder
+    test_hk_pus_encoder
+    test_hk_collection)
+  add_executable(${name} unit/${name}.c)
+  target_link_libraries(${name} PRIVATE app hk_test_doubles unity)
+  add_test(NAME ${name} COMMAND ${name})
+endforeach()
