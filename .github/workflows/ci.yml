@@ -1,0 +1,22 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ cppcheck clang-tidy
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --no-tests=error --output-on-failure
+      - name: Static analysis
+        run: |
+          cppcheck --enable=all --inconclusive --error-exitcode=1 \
+            -I src/app/include \
+            --suppressions-list=ci/cppcheck-suppressions.txt src/app

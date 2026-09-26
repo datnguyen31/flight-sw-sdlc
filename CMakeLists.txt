@@ -11,5 +11,12 @@ add_compile_options(-Wall -Wextra)
 add_subdirectory(src/app)
 add_subdirectory(src/fdir)
 
-enable_testing()
-add_subdirectory(test)
+if(RTEMS)
+  add_subdirectory(src/app/rtems)
+endif()
+
+# Unit tests build and run on the host; they do not cross-compile for RTEMS.
+if(NOT CMAKE_CROSSCOMPILING)
+  enable_testing()
+  add_subdirectory(test)
+endif()

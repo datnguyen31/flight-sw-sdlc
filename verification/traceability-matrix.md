@@ -14,10 +14,10 @@
 | HKS-SR-070 | CUC time field in report (data-model.md; detailed-design.md §1.3) | | Open |
 | HKS-SR-080 | PUS/CCSDS Encoder, TM[3,25] (detailed-design.md §1.4) | | Open |
 | HKS-SR-090 | Telemetry-sink interface (hk_tm_sink.h) | | Open |
-| HKS-SR-100 | Command Handler dispatch; HK Manager state flag (detailed-design.md §1.5; DD-07) | | Open |
-| HKS-SR-110 | Command Handler dispatch; HK Manager state flag (detailed-design.md §1.5; DD-07) | | Open |
-| HKS-SR-120 | `hk_manager_init` default disabled (DD-04) | | Open |
-| HKS-SR-130 | Command Handler reject path (detailed-design.md §1.5) | | Open |
+| HKS-SR-100 | Command Handler dispatch; HK Manager state flag (detailed-design.md §1.5; DD-07) | test_enable_accepted | **Verified (Test)** |
+| HKS-SR-110 | Command Handler dispatch; HK Manager state flag (detailed-design.md §1.5; DD-07) | test_disable_accepted | **Verified (Test)** |
+| HKS-SR-120 | `hk_manager_init` default disabled (DD-04) | test_default_state_is_disabled | **Verified (Test)** |
+| HKS-SR-130 | Command Handler reject path (detailed-design.md §1.5) | test_unknown_rejected_no_change | **Verified (Test)** |
 | HKS-SR-140 | Jitter argument documented via RTEMS rate-monotonic release (verification/timing-analysis.md); final verification by Test during integration | | Open |
 | HKS-SR-150 | Verified by Analysis. Evidence: verification/timing-analysis.md (0.81 ms collection cycle against 50 ms budget). Pending measured confirmation in Session 9. | | **Verified (Analysis)** |
 | HKS-SR-160 | Static buffers only (DD-02; detailed-design.md §1.3) | | Open |

@@ -16,8 +16,30 @@ requirements through design, implementation, and verification.
 
 ## Build
 
+Host build (unit tests via ctest):
+
 ```sh
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build
 ```
+
+Cross-build for RTEMS 6, BSP arm/beagleboneblack (DD-08), against the
+toolchain installed at `/opt/rtems6`:
+
+```sh
+cmake -S . -B build-rtems -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain-rtems-beagleboneblack.cmake
+cmake --build build-rtems
+```
+
+This produces `src/app/rtems/rtems_smoke`, a build-integration smoke image,
+not the HK-TM application itself (Session 6/7). The RTEMS build does not
+run here: beagleboneblack boots over TFTP on real hardware, not under
+QEMU. Unit tests only build for the host and are skipped when
+cross-compiling.
+
+If `mkimage` is available (Debian/Ubuntu: `sudo apt install u-boot-tools`),
+the same build also produces `rtems_smoke.img`: the ELF stripped to a raw
+binary, gzipped, and wrapped as a U-Boot loadable kernel image, ready to
+TFTP-boot on real beagleboneblack hardware. Without `mkimage` this step is
+skipped with a status message; the ELF build is unaffected either way.
