@@ -79,7 +79,7 @@ requirements:
 | R | Review of design |
 
 Verification runs at three levels — unit, integration, system — against
-requirements, on target or on the RTEMS/QEMU emulator.
+requirements, on target or on an emulated RTEMS target (Renode LEON3, DD-09).
 
 Independent software verification and validation (**ISVV**) is introduced
 later, where the mentor re-verifies a sample of requirements independently.

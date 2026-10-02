@@ -12,19 +12,21 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef uint16_t hk_param_id_t;
+    typedef uint16_t hk_param_id_t;
 
-typedef enum {
-  HK_PARAM_OK = 0,      /* fresh, valid value this cycle */
-  HK_PARAM_STALE = 1,   /* no fresh value this cycle (SR-040) */
-  HK_PARAM_UNKNOWN = 2  /* id not served by this source */
-} hk_param_status_t;
+    typedef enum
+    {
+        HK_PARAM_OK      = 0, /* fresh, valid value this cycle */
+        HK_PARAM_STALE   = 1, /* no fresh value this cycle (SR-040) */
+        HK_PARAM_UNKNOWN = 2  /* id not served by this source */
+    } hk_param_status_t;
 
-/* Non-blocking, time-bounded read of one parameter (SR-150). */
-hk_param_status_t hk_param_source_read(hk_param_id_t id, uint32_t *out_value);
+    /* Non-blocking, time-bounded read of one parameter (SR-150). */
+    hk_param_status_t hk_param_source_read(hk_param_id_t id, uint32_t* out_value);
 
 #ifdef __cplusplus
 }

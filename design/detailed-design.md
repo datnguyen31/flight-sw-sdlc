@@ -10,7 +10,8 @@ implementation follows in Session 6–7.
 
 The collection task is released periodically by the RTEMS rate-monotonic
 period service, per DD-06. On each release it runs one collection cycle and
-counts releases with a report divider; when the divider reaches the ratio
+counts releases with a report divider (implemented in `hk_collection.c`,
+called by the thin RTEMS task in `tasks/hk_collection_task.c`; DD-10); when the divider reaches the ratio
 of generation interval to collection interval (4, from the HKS-SR-020/060
 defaults of 1000 ms and 4000 ms), a report is emitted and the divider
 resets. This is DD-01: one period drives both rates, so a report is always
@@ -67,10 +68,12 @@ buffer is statically sized at build time for the baseline parameter count
 
 The encoder writes the CCSDS primary header, the PUS TM secondary header
 with service 3 and subtype 25, then the source data (structure identifier
-plus parameter values), all big-endian (HKS-SR-080). Packet data length is
-back-filled once the source data length is known. A packet error control
-field is not required by the baseline requirements; if added later it is
-appended after the source data without changing this design. The encoder is
+plus parameter values), all big-endian (HKS-SR-080). The baseline report
+has a fixed length (148 bytes, design/data-model.md), so the packet data
+length is a constant. A packet error control field (CRC-16/CCITT-FALSE) is
+appended after the source data, as ECSS-E-ST-70-41C recommends; it was
+optional in this design and was added in implementation without changing the
+layout ahead of it. The encoder is
 pure — report in, byte buffer out — which is what makes it unit-testable
 against known vectors independent of the Telemetry-Sink.
 

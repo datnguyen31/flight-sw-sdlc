@@ -4,7 +4,7 @@
 # (stdbool.h, stdint.h, ...) without a full include-path replica of the
 # target toolchain; the compiler itself already enforces these includes.
 missingIncludeSystem
-# unusedFunction: hk_manager_*/hk_command_dispatch are the public interface
-# consumed by the RTEMS task wrappers added in Session 7, not by anything
-# in src/app yet; whole-program analysis can't see that future caller.
-unusedFunction
+# unusedFunction: Init is the RTEMS initialization task, called by the
+# kernel through the table confdefs.h generates, which cppcheck cannot see.
+# Every other function in src/app has a caller (the task wrappers, Session 7).
+unusedFunction:src/app/rtems/init.c
