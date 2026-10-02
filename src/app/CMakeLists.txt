@@ -16,5 +16,8 @@ add_library(app STATIC
     src/hk_collection.c
     ${HK_CRITICAL_SRC})
 target_include_directories(app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# The FDIR attach points: hk_collection.c (monitor) and hk_command.c
+# (CLEAR_SAFE_MODE). src/fdir/CMakeLists.txt links back to app.
+target_link_libraries(app PUBLIC fdir)
 
 target_compile_options(app PRIVATE ${HK_STRICT_WARNINGS})

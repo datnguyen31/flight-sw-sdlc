@@ -18,8 +18,8 @@ jobs:
       - name: Static analysis
         run: |
           cppcheck --enable=all --inconclusive --error-exitcode=1 \
-            -I src/app/include -I src/app/tasks --library=ci/rtems.cfg \
-            --suppressions-list=ci/cppcheck-suppressions.txt src/app
+            -I src/app/include -I src/app/tasks -I src/fdir/include --library=ci/rtems.cfg \
+            --suppressions-list=ci/cppcheck-suppressions.txt src/app src/fdir
 
   # Cross-compile for RTEMS 7 sparc/leon3 and run the image end to end on
   # Renode, so a change that builds on the host but breaks the target is

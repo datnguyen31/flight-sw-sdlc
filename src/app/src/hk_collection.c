@@ -7,11 +7,16 @@
  * release the divider resets and, if reporting is enabled, the report is
  * encoded and handed to the telemetry sink (SR-060, SR-090, SR-100..120).
  * The report and packet buffers are static (HKS-SR-160, DD-02).
+ *
+ * FDIR (Session 8) attaches at one point: the monitor checks every built
+ * report, before the report divider and the gate, so it runs on every
+ * cycle whatever the reporting state (HKS-FD-020).
  */
 
 #include "hk_collection.h"
 
 #include "hk_manager.h"
+#include "hk_monitor.h"
 #include "hk_pus_encoder.h"
 #include "hk_report_builder.h"
 #include "hk_sampler.h"
@@ -52,6 +57,7 @@ hk_step_result_t hk_collection_step(uint64_t now_cuc)
     hk_sampler_collect(&s_report);       /* SR-020 */
     hk_manager_on_tick();                /* sync hook, no state effect */
     hk_report_build(&s_report, now_cuc); /* SR-050, SR-070, unconditional */
+    hk_monitor_check(&s_report);         /* FDIR (FD-020) */
 
     s_divider++;
     if (s_divider < HK_REPORT_DIVIDER) /* SR-060 */

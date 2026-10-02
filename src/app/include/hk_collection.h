@@ -6,7 +6,8 @@
  * HKS-SR-160; DD-01)
  *
  * One call is one release of the collection task (design/detailed-design.md
- * S1.1): sample, build, count the report divider, and on a report tick with
+ * S1.1): sample, build, check limits (HKS-FD-020, design/fdir-design.md),
+ * count the report divider, and on a report tick with
  * reporting enabled encode and hand the packet to the telemetry sink. Pure
  * C, so the whole pipeline is unit-tested on the host; the RTEMS task in
  * src/app/tasks only supplies the period and the time.
