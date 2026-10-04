@@ -86,7 +86,7 @@ uint8_t* hk_pus_put_tm_header(uint8_t* buf, const hk_tm_header_t* hdr)
     return p;
 }
 
-size_t hk_pus_put_pec(uint8_t* buf, uint8_t* end)
+size_t hk_pus_put_pec(const uint8_t* buf, uint8_t* end)
 {
     /* Packet error control over everything before it */
     const uint8_t* p = hk_pus_put16(end, hk_crc16_ccitt(buf, (size_t)(end - buf)));

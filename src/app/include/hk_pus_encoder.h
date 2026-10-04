@@ -58,7 +58,7 @@ extern "C"
 
     /* Append the PEC over [buf, end) at end, which must leave room for
      * HK_PEC_BYTES. Returns the total packet length. */
-    size_t hk_pus_put_pec(uint8_t* buf, uint8_t* end);
+    size_t hk_pus_put_pec(const uint8_t* buf, uint8_t* end);
 
     /* Encode report as TM[3,25] with sequence count seq (14 bits used).
      * Returns the packet length, or 0 if an argument is NULL or cap is below
