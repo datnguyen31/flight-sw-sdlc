@@ -18,8 +18,9 @@ jobs:
       - name: Static analysis
         run: |
           cppcheck --enable=all --inconclusive --error-exitcode=1 \
-            -I src/app/include -I src/app/tasks -I src/fdir/include --library=ci/rtems.cfg \
-            --suppressions-list=ci/cppcheck-suppressions.txt src/app src/fdir
+            -I src/app/include -I src/app/tasks -I src/app/rtems -I src/fdir/include \
+            -I test/system --library=ci/rtems.cfg \
+            --suppressions-list=ci/cppcheck-suppressions.txt src/app src/fdir test/system
 
   # Cross-compile for RTEMS 7 sparc/leon3 and run the image end to end on
   # Renode, so a change that builds on the host but breaks the target is
@@ -39,3 +40,5 @@ jobs:
         run: cmake --build build-target
       - name: End-to-end run on Renode
         run: tools/renode/run_hk_app.sh build-target/src/app/rtems/hk_app.exe
+      - name: System tests ST-01..ST-10 on Renode
+        run: test/system/run_system_tests.sh build-target/test/system/hk_system_test.exe

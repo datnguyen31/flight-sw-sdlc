@@ -17,6 +17,8 @@ add_subdirectory(src/fdir)
 
 if(RTEMS)
   add_subdirectory(src/app/rtems)
+  # System test image and rig (Session 9): runs on the target, not the host.
+  add_subdirectory(test/system)
 endif()
 
 # Unit tests build and run on the host; they do not cross-compile for RTEMS.

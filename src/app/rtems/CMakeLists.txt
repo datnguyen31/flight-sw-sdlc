@@ -1,17 +1,28 @@
 # Built only when cross-compiling for RTEMS (cmake/toolchain-rtems.cmake).
-# hk_app is the HK-TM service image: the host-tested logic library, the two
-# RTEMS task wrappers, and this BSP-level glue (simulated parameter source,
-# console telemetry sink, RTEMS time, Init).
-add_executable(hk_app
-    init.c
-    hk_param_source_sim.c
+# hk_service is the target glue every image shares: the two RTEMS task
+# wrappers, startup, the console telemetry sink and RTEMS time. hk_app is
+# the HK-TM service image: hk_service, the host-tested logic library, the
+# simulated parameter source and Init with its ground script. The system
+# test image (test/system/) links the same hk_service with its own
+# provider and Init. hk_service is an object library, so its objects go
+# straight into each image: app calls back into it (the telemetry sink), so
+# as a static library it would sit on the link line before app's undefined
+# references.
+add_library(hk_service OBJECT
+    hk_startup.c
     hk_tm_sink_console.c
     hk_time_rtems.c
     ../tasks/hk_collection_task.c
     ../tasks/hk_command_task.c)
+target_include_directories(hk_service PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../tasks)
+target_link_libraries(hk_service PUBLIC app fdir)
+target_compile_options(hk_service PRIVATE ${HK_STRICT_WARNINGS})
+
+add_executable(hk_app
+    init.c
+    hk_param_source_sim.c)
 set_target_properties(hk_app PROPERTIES SUFFIX ".exe")
-target_include_directories(hk_app PRIVATE ../tasks)
-target_link_libraries(hk_app PRIVATE app fdir)
+target_link_libraries(hk_app PRIVATE hk_service)
 target_compile_options(hk_app PRIVATE ${HK_STRICT_WARNINGS})
 
 if(RTEMS_BSP STREQUAL "leon3")

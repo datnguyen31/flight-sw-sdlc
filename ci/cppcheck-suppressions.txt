@@ -8,3 +8,4 @@ missingIncludeSystem
 # kernel through the table confdefs.h generates, which cppcheck cannot see.
 # Every other function in src/app has a caller (the task wrappers, Session 7).
 unusedFunction:src/app/rtems/init.c
+unusedFunction:test/system/st_main.c

@@ -14,6 +14,16 @@ re-verified here with it included, not assumed to still hold. The same
 analysis verifies the timing half of HKS-FD-090. The Session 5 figures are
 unchanged except for one arithmetic correction, noted below.
 
+**Session 9 note (measurement).** `verification/timing-measured.md`
+measured the running system under Renode. The total is corroborated: the
+worst release is 1.30 ms. The split is not: sampling and monitoring take
+about a quarter of their bound here, and the output path takes two to four
+times its bound, because the target's console sink formats each byte to a
+polled UART, not the 50 µs queued handoff assumed below. A report tick with
+an event measured 14 µs over the figure these rows give for it (SYS-4). No
+requirement is at risk. Revision 3 is due before the Session 10
+verification report, with a per-sink handoff assumption.
+
 ## Assumptions
 
 - Baseline parameter count N = 32. Not yet fixed by the data model; this

@@ -46,6 +46,21 @@ run expects none. To watch it interactively instead:
 renode -e '$bin=@build-target/src/app/rtems/hk_app.exe; include @tools/renode/hk_leon3.resc; showAnalyzer uart; start'
 ```
 
+### System tests (Session 9)
+
+The same build also produces `build-target/test/system/hk_system_test.exe`,
+the service with a test rig in place of the simulator and the ground script:
+a representative parameter provider with a fault injector, and a scripted
+command injector. It runs system tests ST-01 to ST-10
+(`verification/system-test-spec.md`). `test/system/st_capture.py` checks each
+one from the captured telemetry:
+
+```sh
+RENODE=/path/to/renode test/system/run_system_tests.sh   # or: cmake --build build-target --target run_system_tests
+# Long run for the timing measurement (verification/timing-measured.md):
+RENODE=/path/to/renode RENODE_QUANTUM=0.00001 test/system/run_system_tests.sh <exe> 300
+```
+
 Other installed BSPs use the same toolchain file, e.g. `-DRTEMS_BSP=erc32`
 (runs under `sparc-rtems7-sis -r`). For RTEMS 6 arm/beagleboneblack on real
 hardware (DD-08), use the preset
