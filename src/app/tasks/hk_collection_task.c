@@ -6,13 +6,15 @@
  * cycle per HK_COLLECTION_PERIOD_MS (DD-06), and hk_collection_step() does
  * the work (design/detailed-design.md S1.1). A period overrun (RTEMS_TIMEOUT
  * from rtems_rate_monotonic_period) is counted and reported, as evidence
- * for the jitter requirement.
+ * for the jitter requirement. The cycle line also shows the safe-mode
+ * indicator (HKS-FD-080), so a console log shows when it was set.
  */
 
 #include <rtems.h>
 #include <rtems/bspIo.h>
 
 #include "hk_collection.h"
+#include "hk_safemode.h"
 #include "hk_tasks.h"
 #include "hk_time.h"
 
@@ -58,10 +60,11 @@ static rtems_task hk_collection_task(rtems_task_argument arg)
         }
         cycle++;
         hk_step_result_t res = hk_collection_step(hk_time_now_cuc());
-        printk("[hk] cycle %3lu: %s (overruns %lu)\n",
+        printk("[hk] cycle %3lu: %s (overruns %lu)%s\n",
                (unsigned long)cycle,
                step_name(res),
-               (unsigned long)overruns);
+               (unsigned long)overruns,
+               hk_safemode_active() ? " [SAFE MODE]" : "");
     }
 }
 

@@ -5,9 +5,10 @@
  * ground-station sequence for the end-to-end run under emulation.
  *
  * Startup order matters: hk_critical_init() creates the mutex the HK
- * Manager uses, so it runs before hk_manager_init(); both run before
- * either task starts (hk_critical.h). All tasks and resources are created
- * here, once, statically (HKS-SR-180).
+ * Manager and the safe-mode controller use, so it runs before
+ * hk_manager_init() and hk_safemode_init(); all run before either task
+ * starts (hk_critical.h). All tasks and resources are created here, once,
+ * statically (HKS-SR-180).
  *
  * The ground sequence stands in for an uplink: enable reporting (SR-100),
  * send an unknown telecommand that must be rejected with no state change
@@ -21,7 +22,10 @@
 
 #include "hk_collection.h"
 #include "hk_critical.h"
+#include "hk_event.h"
 #include "hk_manager.h"
+#include "hk_monitor.h"
+#include "hk_safemode.h"
 #include "hk_tasks.h"
 
 #define HK_FATAL_STARTUP  0x484B494Eu /* 'HKIN' */
@@ -66,6 +70,9 @@ rtems_task Init(rtems_task_argument arg)
     hk_critical_init();
     hk_manager_init(); /* reporting DISABLED (SR-120) */
     hk_collection_init();
+    hk_safemode_init(); /* safe mode inactive (FD-080) */
+    hk_monitor_init();  /* every parameter NOMINAL */
+    hk_event_init();
     check_startup(hk_command_task_start(), "command task");
     check_startup(hk_collection_task_start(), "collection task");
     printk("[init] tasks started; reporting disabled until commanded\n");
@@ -85,7 +92,7 @@ rtems_task Init(rtems_task_argument arg)
 #define CONFIGURE_MAXIMUM_TASKS                            3 /* Init + command + collection */
 #define CONFIGURE_MINIMUM_TASKS_WITH_USER_PROVIDED_STORAGE 2
 #define CONFIGURE_MAXIMUM_THREAD_LOCAL_STORAGE_SIZE        HK_TASK_MAX_TLS_SIZE
-#define CONFIGURE_MAXIMUM_SEMAPHORES                       1 /* HK Manager mutex */
+#define CONFIGURE_MAXIMUM_SEMAPHORES                       1 /* HK Manager + safe-mode mutex */
 #define CONFIGURE_MAXIMUM_MESSAGE_QUEUES                   1 /* command queue */
 #define CONFIGURE_MAXIMUM_PERIODS                          1 /* collection period */
 

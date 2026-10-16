@@ -4,13 +4,15 @@
 /*
  * Critical-Section Interface (design/detailed-design.md S1.6)
  *
- * Isolates the RTOS dependency of the reporting-state flag's mutual
- * exclusion behind a swappable pair of calls: a no-op on the host so the
- * HK Manager logic is unit-testable without an RTOS, and a
- * priority-inheritance mutex under RTEMS (hk_critical_rtems.c).
+ * Isolates the RTOS dependency of the mutual exclusion on the state shared
+ * between the command and collection tasks (the reporting-state flag and,
+ * since Session 8, the safe-mode indicator) behind a swappable pair of
+ * calls: a no-op on the host so the HK Manager and safe-mode logic is
+ * unit-testable without an RTOS, and a priority-inheritance mutex under
+ * RTEMS (hk_critical_rtems.c).
  *
  * hk_critical_init() must run once at startup, before hk_manager_init()
- * and before any task that uses the HK Manager is started.
+ * and hk_safemode_init(), and before any task is started.
  */
 
 #ifdef __cplusplus

@@ -1,14 +1,22 @@
 /* test/unit/test_hk_collection.c (verifies HKS-SR-060, SR-090; gating
- * SR-100..120 through the full pipeline) */
+ * SR-100..120 through the full pipeline; FDIR attach point HKS-FD-020) */
 #include "unity.h"
 #include "hk_collection.h"
+#include "hk_event.h"
+#include "hk_limits.h"
 #include "hk_manager.h"
+#include "hk_monitor.h"
 #include "hk_pus_encoder.h"
+#include "hk_safemode.h"
+#include "hk_sampler.h"
 #include "hk_test_doubles.h"
 
 void setUp(void) {
   hk_manager_init();
   hk_collection_init();
+  hk_monitor_init();
+  hk_safemode_init();
+  hk_event_init();
   hk_stub_source_reset();
   hk_capture_sink_reset();
 }
@@ -126,6 +134,39 @@ void test_disable_stops_packets(void) {
   TEST_ASSERT_EQUAL_size_t(1u, hk_capture_sink_count());
 }
 
+/* HKS-FD-020: the monitor runs on every collection cycle, whatever the
+ * reporting state, and its events go out through the same sink */
+void test_monitor_checks_every_cycle_while_reporting_disabled(void) {
+  hk_stub_source_set_value(g_param_ids[0], g_limits[0].low_crit);
+  for (uint32_t t = 1u; t < HK_DEBOUNCE_N; t++) {
+    (void)hk_collection_step(cuc_seconds(t));
+  }
+  TEST_ASSERT_EQUAL_size_t(0u, hk_capture_sink_count());
+
+  (void)hk_collection_step(cuc_seconds(HK_DEBOUNCE_N));
+  TEST_ASSERT_EQUAL_size_t(2u, hk_capture_sink_count_service(HK_EVT_SVC));
+  TEST_ASSERT_EQUAL_size_t(0u, hk_capture_sink_count_service(HK_PUS_SVC));
+  TEST_ASSERT_TRUE(hk_safemode_active());
+}
+
+/* HKS-FD-020 with the baseline unchanged: nominal values raise no events,
+ * and an event between reports does not disturb the HK sequence count */
+void test_events_leave_hk_stream_unchanged(void) {
+  hk_manager_set_reports_enabled(true);
+  for (uint32_t t = 1u; t <= 3u * HK_REPORT_DIVIDER; t++) {
+    (void)hk_collection_step(cuc_seconds(t));
+  }
+  TEST_ASSERT_EQUAL_size_t(0u, hk_capture_sink_count_service(HK_EVT_SVC));
+
+  hk_stub_source_set_value(g_param_ids[0], g_limits[0].high_warn + 1u);
+  for (uint32_t t = 1u; t <= HK_REPORT_DIVIDER; t++) {
+    (void)hk_collection_step(cuc_seconds(t));
+  }
+  TEST_ASSERT_EQUAL_size_t(1u, hk_capture_sink_count_service(HK_EVT_SVC));
+  TEST_ASSERT_EQUAL_HEX8(HK_PUS_SVC, hk_capture_sink_last()[7]);
+  TEST_ASSERT_EQUAL_HEX8(0x03, hk_capture_sink_last()[3]); /* 4th HK packet */
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_disabled_emits_nothing);
@@ -135,5 +176,7 @@ int main(void) {
   RUN_TEST(test_enable_midway_keeps_report_alignment);
   RUN_TEST(test_sink_rejection_reported_and_counted);
   RUN_TEST(test_disable_stops_packets);
+  RUN_TEST(test_monitor_checks_every_cycle_while_reporting_disabled);
+  RUN_TEST(test_events_leave_hk_stream_unchanged);
   return UNITY_END();
 }

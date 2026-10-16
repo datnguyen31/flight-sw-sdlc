@@ -38,7 +38,9 @@ image, then runs it for 27 s of virtual time on Renode's LEON3 platform. The
 image's `Init` plays a scripted ground station: ENABLE_REPORTS, an unknown
 telecommand, then DISABLE_REPORTS. `tools/hk_tm_decode.py` then decodes every
 `TM` packet on the console independently of the flight encoder and checks
-it. To watch it interactively instead:
+it, including each value against the decoder's own copy of the FDIR limits.
+FDIR event reports (PUS TM[5,s], APID `0x0CB`) are decoded too. The nominal
+run expects none. To watch it interactively instead:
 
 ```sh
 renode -e '$bin=@build-target/src/app/rtems/hk_app.exe; include @tools/renode/hk_leon3.resc; showAnalyzer uart; start'

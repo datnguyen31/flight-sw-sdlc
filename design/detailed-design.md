@@ -31,6 +31,7 @@ collection_task():
         sample_all_parameters()                                  # 1.2, into working set
         hk_manager_on_tick()                                      # sync hook, no state effect today
         report = build_report(working_set, collection_time)       # 1.3, unconditional
+        hk_monitor_check(report)               # FDIR, Session 8 (fdir-design.md §1)
         divider = divider + 1
         if divider == REPORT_DIVIDER:          # 4 for baseline (HKS-SR-060)
             divider = 0

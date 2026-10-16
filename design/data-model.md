@@ -62,5 +62,30 @@ message type counter's per-type maintenance (sent as 0) and the destination
 ID field; both are acceptable for a single-report, single-ground baseline
 and are recorded here so a ground decoder is configured to match.
 
+## Event report (FDIR, PUS Service 5)
+
+FDIR event reports (HKS-FD-040, design/fdir-design.md §3) use the same
+primary header, secondary header and PEC as the housekeeping report.
+`hk_pus_put_tm_header()` and `hk_pus_put_pec()` write both, so the two
+packet kinds share one implementation. The source data is an event
+definition id followed by fixed auxiliary data.
+
+| Field | Size | Contents |
+|---|---|---|
+| Event definition id | 2 bytes | 1 = limit, 2 = stale parameter, 3 = safe mode entered. |
+| Parameter id | 2 bytes | The parameter concerned; `0x0000` for safe mode. |
+| Condition | 1 byte | Limit event: `hk_limit_state_t` (1 warn low, 2 warn high, 3 crit low, 4 crit high). Stale event: the parameter's last `hk_param_status_t` (1 stale, 2 unknown). Safe mode: 0. |
+
+| Field | Value |
+|---|---|
+| Packet ID | `0x08CB`: version 0, TM, secondary header present, APID `0x0CB` (DD-12) |
+| Sequence control | `0b11` (unsegmented) + 14-bit count, separate from the housekeeping count, incremented per generated event |
+| Packet data length | 17 (`0x0011`): 18 bytes follow the primary header |
+| Service / subtype | 5 / severity: 1 informative, 2 low (warning limit), 3 medium (stale), 4 high (critical limit, safe mode) |
+| Time | Collection time of the report that confirmed the event, CUC 4+2 |
+| Total packet length | 24 bytes |
+
+The byte-exact vector in `test/unit/test_hk_event.c` pins this layout.
+
 **Notes:**
 - Endianness for multi-byte fields is big-endian per CCSDS.
