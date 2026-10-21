@@ -66,7 +66,7 @@ record within that run's quantization (§2).
 | Collection cycle, nominal (best) | – | **270 µs** | soak | – |
 | Collection cycle, worst case | 986 µs (no new condition); 1156 µs with two events | **570 µs** | cycle 74: critical limit event + safe-mode event (ST-08) | SR-150 (< 50 ms) |
 | Report cycle, no event | 1206 µs | **1150 µs** | cycle 12 (ST-01) | within the 1000 ms period |
-| Report cycle, worst case | 1286 µs with one event | **1300 µs** | cycle 64: report tick + warning event (ST-07) | within the 1000 ms period |
+| Report cycle, worst case | 1286 µs with one event | **1300 µs** (equal within resolution, §3) | cycle 64: report tick + warning event (ST-07) | within the 1000 ms period |
 | Period release jitter | about one tick (1 ms), ≪ 400 ms | **0 µs** (at 10 µs resolution), 0 overruns | all 479 timer releases | SR-140 (< 10 %, 400 ms) |
 
 Last complete `[timing]` records of the two long runs:
@@ -96,9 +96,15 @@ between release types gives the cost of each part:
 
 The computational parts come in at about a quarter of their bound. The
 output path costs four times its bound for an HK packet and twice for an
-event. On the release that has both, a report tick with a warning event,
-the measurement is 14 µs (about 1 %) above the analysis figure for that
-combination (SYS-4 in `system-test-results.md`).
+event. This is the finding (SYS-4 in `system-test-results.md`).
+
+The release that has both, a report tick with a warning event, measured
+1300 µs against 1286 µs from the analysis. The 14 µs difference is about
+one step of the ±10 µs resolution, on an emulator whose absolute timing
+is not representative (§4), so it is not claimed as a measured exceedance
+of the analysis. The total agrees with the analysis within resolution, and
+it agrees only because the overestimated computational parts offset the
+underestimated output path.
 
 **Cause.** The analysis bounds the sink handoff at 50 µs, which assumes a
 handoff to a downlink queue. The target's sink is the console stand-in
