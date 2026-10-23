@@ -1,8 +1,11 @@
 name: ci
 on: [push, pull_request]
 jobs:
+  # Pinned image: the cppcheck gate is tuned to the apt cppcheck of 24.04
+  # (2.13). ubuntu-latest moved to 26.04 (cppcheck 2.19, new staticFunction
+  # check), so upgrading the analyser must be a deliberate change.
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install tools
