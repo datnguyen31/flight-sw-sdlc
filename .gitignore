@@ -34,3 +34,5 @@ _deps/
 
 # Others
 MY_NOTE.md
+# Python
+__pycache__/

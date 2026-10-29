@@ -5,6 +5,12 @@
  * a statically constructed message queue and hands each telecommand to
  * hk_command_dispatch(), which validates it and updates the HK Manager
  * under the critical section. No blocking work besides the receive.
+ *
+ * The uplink delivers frames of bytes. A frame of the wrong length is
+ * malformed: it is rejected here, before dispatch, and logged like an
+ * unknown opcode, so ground sees every rejection (HKS-SR-130). A frame
+ * longer than a telecommand never reaches the task: the queue refuses it
+ * at hk_command_uplink_frame().
  */
 
 #include <rtems.h>
@@ -29,15 +35,20 @@ static rtems_task hk_command_task(rtems_task_argument arg)
         hk_command_id_t cmd;
         size_t          size = 0u;
 
-        if ((rtems_message_queue_receive(s_cmd_queue, &cmd, &size, RTEMS_WAIT, RTEMS_NO_TIMEOUT) ==
-             RTEMS_SUCCESSFUL) &&
-            (size == sizeof(cmd)))
+        if (rtems_message_queue_receive(s_cmd_queue, &cmd, &size, RTEMS_WAIT, RTEMS_NO_TIMEOUT) !=
+            RTEMS_SUCCESSFUL)
         {
-            hk_command_result_t res = hk_command_dispatch(cmd);
-            printk("[cmd] telecommand %d %s\n",
-                   (int)cmd,
-                   (res == HK_CMD_ACCEPTED) ? "accepted" : "REJECTED");
+            continue;
         }
+        if (size != sizeof(cmd))
+        {
+            printk("[cmd] malformed telecommand (%lu bytes) REJECTED\n", (unsigned long)size);
+            continue; /* SR-130: no state change */
+        }
+        hk_command_result_t res = hk_command_dispatch(cmd);
+        printk("[cmd] telecommand %d %s\n",
+               (int)cmd,
+               (res == HK_CMD_ACCEPTED) ? "accepted" : "REJECTED");
     }
 }
 
@@ -75,7 +86,12 @@ rtems_status_code hk_command_task_start(void)
     return rtems_task_start(id, hk_command_task, 0u);
 }
 
+rtems_status_code hk_command_uplink_frame(const void* frame, size_t size)
+{
+    return rtems_message_queue_send(s_cmd_queue, frame, size);
+}
+
 rtems_status_code hk_command_uplink(hk_command_id_t cmd)
 {
-    return rtems_message_queue_send(s_cmd_queue, &cmd, sizeof(cmd));
+    return hk_command_uplink_frame(&cmd, sizeof(cmd));
 }

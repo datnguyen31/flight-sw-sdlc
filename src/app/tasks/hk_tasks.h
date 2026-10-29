@@ -12,6 +12,7 @@
  */
 
 #include <rtems.h>
+#include <stdint.h>
 
 #include "hk_command.h"
 
@@ -35,8 +36,29 @@ extern "C"
     /* Construct and start the collection task. */
     rtems_status_code hk_collection_task_start(void);
 
-    /* Uplink ingress: queue one telecommand for the command task. */
+    /* Uplink ingress: queue one raw uplink frame for the command task. A
+     * frame longer than a telecommand is refused (RTEMS_INVALID_SIZE); a
+     * shorter one is rejected by the command task (SR-130). */
+    rtems_status_code hk_command_uplink_frame(const void* frame, size_t size);
+
+    /* Uplink ingress: queue one well-formed telecommand. */
     rtems_status_code hk_command_uplink(hk_command_id_t cmd);
+
+    /* Collection-cycle timing measured on the running system, kept and
+     * printed by the collection task (verification/timing-measured.md).
+     * Times in nanoseconds of RTEMS uptime. */
+    typedef struct
+    {
+        uint32_t releases;       /* collection cycles run */
+        uint32_t overruns;       /* rate-monotonic period overruns */
+        uint64_t collect_min_ns;    /* best release that sent no report */
+        uint64_t collect_max_ns;    /* worst release that sent no report */
+        uint32_t collect_max_cycle; /* ... and the cycle it was */
+        uint64_t report_max_ns;     /* worst release that encoded and sent a report */
+        uint32_t report_max_cycle;  /* ... and the cycle it was */
+        uint64_t jitter_max_ns;     /* worst |release - ideal release| */
+        uint32_t jitter_max_cycle;  /* ... and the cycle it was */
+    } hk_timing_t;
 
 #ifdef __cplusplus
 }
