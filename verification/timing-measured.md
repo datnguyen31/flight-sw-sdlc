@@ -125,6 +125,9 @@ remains the evidence for SR-150 for the computational part, and this
 measurement corroborates the total. `timing-analysis.md` carries a note
 pointing here.
 
+*Session 10:* revision 3 of `timing-analysis.md` is done. It bounds the
+handoff per sink and closes SYS-4.
+
 ## 4. What emulation can and cannot tell us
 
 The measurement shows the service completes every release with a large
