@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 412" role="img" aria-labelledby="arch-t arch-d">
+<title id="arch-t">HK-TM component architecture</title>
+<desc id="arch-d">Ground telecommands go to the command handler in the command task, which sets the HK Manager's enable flag or clears safe mode. In the collection task, the sampler reads 32 parameters through the parameter-source interface each second, the report builder stamps CUC time, the FDIR monitor checks every report, and the reporting gate passes every fourth report to the PUS/CCSDS encoder and the telemetry sink. Confirmed limit conditions produce PUS service 5 events, and a critical one enters safe mode.</desc>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-f" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+<rect class="zone" x="150" y="20" width="490" height="100" rx="4"/>
+<text class="zl" x="160" y="37">COMMAND TASK · MESSAGE QUEUE · PRIORITY 10</text>
+<rect class="zone" x="150" y="150" width="680" height="256" rx="4"/>
+<text class="zl" x="160" y="168">COLLECTION TASK · 1000 MS · PRIORITY 20</text>
+<rect class="zone" x="326" y="292" width="496" height="106" rx="4" style="stroke:var(--fig-fdir)"/>
+<text class="zl" x="684" y="306" style="fill:var(--fig-fdir)">FDIR · src/fdir</text>
+<rect class="box-2" x="10" y="50" width="130" height="50" rx="3"/>
+<text class="t" x="75.0" y="71" text-anchor="middle">Ground</text>
+<text class="t2" x="75.0" y="88" text-anchor="middle">TC uplink</text>
+<rect class="box" x="170" y="50" width="130" height="50" rx="3"/>
+<text class="t" x="235.0" y="71" text-anchor="middle">Command handler</text>
+<text class="t2" x="235.0" y="88" text-anchor="middle">validate, dispatch</text>
+<rect class="box" x="510" y="50" width="130" height="50" rx="3"/>
+<text class="t" x="575.0" y="71" text-anchor="middle">HK Manager</text>
+<text class="t2" x="575.0" y="88" text-anchor="middle">enable flag</text>
+<rect class="box-2" x="870" y="50" width="120" height="50" rx="3"/>
+<text class="t" x="930.0" y="71" text-anchor="middle">Ground</text>
+<text class="t2" x="930.0" y="88" text-anchor="middle">TM downlink</text>
+<rect class="box" x="170" y="190" width="130" height="50" rx="3"/>
+<text class="t" x="235.0" y="211" text-anchor="middle">Sampler</text>
+<text class="t2" x="235.0" y="228" text-anchor="middle">32 params, stale mark</text>
+<rect class="box" x="340" y="190" width="130" height="50" rx="3"/>
+<text class="t" x="405.0" y="211" text-anchor="middle">Report builder</text>
+<text class="t2" x="405.0" y="228" text-anchor="middle">+ CUC time</text>
+<rect class="box" x="510" y="190" width="130" height="50" rx="3"/>
+<text class="t" x="575.0" y="211" text-anchor="middle">Reporting gate</text>
+<text class="t2" x="575.0" y="228" text-anchor="middle">enabled, every 4th</text>
+<rect class="box-accent" x="680" y="190" width="150" height="50" rx="3"/>
+<text class="t" x="755.0" y="211" text-anchor="middle">PUS/CCSDS encoder</text>
+<text class="t2" x="755.0" y="228" text-anchor="middle">TM[3,25] + PEC</text>
+<rect class="box-accent" x="870" y="190" width="120" height="50" rx="3"/>
+<text class="t" x="930.0" y="211" text-anchor="middle">Telemetry sink</text>
+<text class="t2" x="930.0" y="228" text-anchor="middle">interface</text>
+<rect class="box-2" x="170" y="318" width="130" height="50" rx="3"/>
+<text class="t" x="235.0" y="339" text-anchor="middle">Param. providers</text>
+<text class="t2" x="235.0" y="356" text-anchor="middle">source interface</text>
+<rect class="box-fdir" x="340" y="318" width="130" height="50" rx="3"/>
+<text class="t" x="405.0" y="339" text-anchor="middle">Monitor</text>
+<text class="t2" x="405.0" y="356" text-anchor="middle">limits, debounce N=3</text>
+<rect class="box-fdir" x="510" y="318" width="130" height="50" rx="3"/>
+<text class="t" x="575.0" y="339" text-anchor="middle">Safe-mode ctrl</text>
+<text class="t2" x="575.0" y="356" text-anchor="middle">ground-only clear</text>
+<rect class="box-fdir" x="680" y="318" width="130" height="50" rx="3"/>
+<text class="t" x="745.0" y="339" text-anchor="middle">Event reporter</text>
+<text class="t2" x="745.0" y="356" text-anchor="middle">PUS 5, APID 0x0CB</text>
+<path class="edge" d="M140,75 H168" marker-end="url(#a)"/>
+<path class="edge" d="M300,75 H508" marker-end="url(#a)"/>
+<text class="t3" x="405" y="68" text-anchor="middle">enable / disable</text>
+<path class="edge" d="M300,215 H338" marker-end="url(#a)"/>
+<path class="edge" d="M470,215 H508" marker-end="url(#a)"/>
+<path class="edge-f" d="M235,100 V140 H485 V335 H508" marker-end="url(#f)"/>
+<text class="t3" x="360" y="134" text-anchor="middle">CLEAR_SAFE_MODE</text>
+<path class="edge" d="M575,100 V188" marker-end="url(#a)"/>
+<text class="t3" x="583" y="138" text-anchor="start">gate</text>
+<path class="edge" d="M640,215 H678" marker-end="url(#a)"/>
+<path class="edge" d="M830,215 H868" marker-end="url(#a)"/>
+<path class="edge" d="M235,318 V242" marker-end="url(#a)"/>
+<path class="edge" d="M405,240 V316" marker-end="url(#a)"/>
+<path class="edge-f" d="M470,352 H508" marker-end="url(#f)"/>
+<path class="edge-f" d="M640,343 H678" marker-end="url(#f)"/>
+<path class="edge-f" d="M405,368 V384 H745 V370" marker-end="url(#f)"/>
+<path class="edge" d="M810,343 H930 V242" marker-end="url(#a)"/>
+<path class="edge" d="M930,190 V102" marker-end="url(#a)"/>
+<text class="t3" x="936" y="150" text-anchor="start">TM</text>
+</svg>

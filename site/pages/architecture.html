@@ -1,0 +1,113 @@
+<p>Six baseline components sit behind two designed interfaces, the
+parameter source and the telemetry sink. The FDIR increment adds four
+components in their own directory and attaches to the pipeline at one
+point: after a report is built and before the reporting gate, so FDIR
+checks every sample whether or not reporting is enabled.</p>
+
+<h2>Component view</h2>
+
+<figure>
+<!--figure:architecture-->
+<figcaption>Figure 1. Components grouped by the RTEMS task that runs them.
+FDIR components and paths are drawn in red, the encoder and sink in blue.
+The command task sets the enable flag through the HK Manager and clears
+safe mode. The collection task runs the whole per-second pipeline.</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+  <tr><th>Component</th><th>Responsibility</th><th>Requirements</th></tr>
+  <tr><td>Sampler</td><td>Reads all 32 parameters through the parameter-source interface once per cycle. A silent source gives the stale marker <code>0xFFFFFFFF</code></td><td class="nowrap">SR-020, 040</td></tr>
+  <tr><td>Report builder</td><td>Assembles the fixed report and stamps it with the onboard CUC time of the collection</td><td class="nowrap">SR-050, 070</td></tr>
+  <tr><td>PUS/CCSDS encoder</td><td>Encodes a 148-byte TM[3,25] packet: CCSDS primary header, PUS-C secondary header, data, CRC-16 packet error control</td><td class="nowrap">SR-080</td></tr>
+  <tr><td>HK Manager</td><td>Owns the reporting-enabled flag and the critical section around it. Quiet at start</td><td class="nowrap">SR-100 to 120</td></tr>
+  <tr><td>Command handler</td><td>Validates telecommands and dispatches ENABLE_REPORTS, DISABLE_REPORTS and CLEAR_SAFE_MODE. Rejects malformed or unknown commands visibly, with no state change</td><td class="nowrap">SR-130, FD-080</td></tr>
+  <tr><td>Collection step</td><td>The per-release pipeline as a pure C function, <code>hk_collection_step()</code>: sample, build, check, gate, encode, send (DD-10)</td><td class="nowrap">SR-060</td></tr>
+  <tr><td>Limit table</td><td>Soft and hard, low and high limits per parameter, in raw 12-bit counts</td><td class="nowrap">FD-010</td></tr>
+  <tr><td>Monitor</td><td>Checks every parameter every cycle, debounces over N = 3 samples, holds each parameter's confirmed level and escalates, counts stale cycles</td><td class="nowrap">FD-020 to 070</td></tr>
+  <tr><td>Event reporter</td><td>Encodes PUS Service 5 events (TM[5,2] warning, TM[5,4] critical, TM[5,3] stale) on APID <code>0x0CB</code></td><td class="nowrap">FD-040, 050</td></tr>
+  <tr><td>Safe-mode controller</td><td>Holds the safe-mode indicator: entered on a confirmed critical condition, cleared only by ground command</td><td class="nowrap">FD-060, 080</td></tr>
+</table></div>
+
+<h2>RTEMS task structure</h2>
+
+<p>The service runs as two tasks with statically defined priorities, stacks
+and queues (HKS-SR-180). All RTEMS objects are created from static storage
+at startup, and nothing is allocated after it (HKS-SR-160).</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Task</th><th>RTEMS priority</th><th>Activation</th><th>Role</th></tr>
+  <tr><td>Command task</td><td class="num">10 (higher)</td><td>Event: blocks on a message queue, depth 4</td><td>Receives a telecommand, validates it and dispatches it. No blocking work, so a command never waits behind a collection cycle</td></tr>
+  <tr><td>Collection task</td><td class="num">20</td><td>Periodic: rate-monotonic period, 1000 ms</td><td>Runs <code>hk_collection_step()</code> each release. Every fourth release that finds reporting enabled emits a report</td></tr>
+</table></div>
+
+<p>The two tasks share two flags: reporting enabled, and safe mode. Each
+has one owner, and both are guarded by a priority-inheritance semaphore,
+so a low-priority holder cannot be preempted indefinitely by work in
+between (DD-07, DD-11). Each task is a thin loop around a logic call, and
+all logic is plain C11 with no RTOS calls, so it is unit-tested on the
+host through the same interfaces the target uses.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Layer</th><th>Location</th><th>Contents</th></tr>
+  <tr><td>Logic</td><td><code>src/app/src</code>, <code>src/fdir/src</code></td><td>Sampler, builder, encoder, manager, command handler, collection step; limits, monitor, events, safe mode</td></tr>
+  <tr><td>Tasks</td><td><code>src/app/tasks</code></td><td>The two RTEMS tasks</td></tr>
+  <tr><td>Platform</td><td><code>src/app/rtems</code></td><td>Startup, RTEMS configuration, time source, simulated parameter provider, console sink</td></tr>
+</table></div>
+
+<h2>Telemetry and telecommand</h2>
+
+<div class="table-wrap"><table>
+  <tr><th>Product</th><th>Format</th><th>APID</th><th>When</th></tr>
+  <tr><td>Housekeeping report</td><td>CCSDS space packet, PUS TM[3,25], SID 1, 32 &times; 32-bit values, 6-byte CUC time, CRC-16 (148 bytes)</td><td class="nowrap"><code>0x0CA</code></td><td>Every 4 s while enabled</td></tr>
+  <tr><td>FDIR events</td><td>PUS TM[5,2] / [5,3] / [5,4], parameter and condition, CUC time of the confirming report</td><td class="nowrap"><code>0x0CB</code></td><td>Once per confirmed condition or escalation</td></tr>
+  <tr><td>Telecommands</td><td>ENABLE_REPORTS, DISABLE_REPORTS, CLEAR_SAFE_MODE</td><td></td><td>On uplink</td></tr>
+</table></div>
+
+<h2>Key design decisions</h2>
+
+<p>Each decision is recorded with its reason and the alternative it
+rejected, in <a href="{{repo}}/design/design-decisions.md">the design
+decision log</a> (DD-01 to DD-18). The ones that shaped the design most:</p>
+
+<div class="table-wrap"><table>
+  <tr><th>ID</th><th>Decision</th><th>Why</th></tr>
+  <tr><td class="nowrap">DD-01</td><td>One periodic task with a report divider, not two tasks</td><td>Each report aligns with a completed collection by construction, and there is one timing source to reason about</td></tr>
+  <tr><td class="nowrap">DD-02</td><td>Static allocation only</td><td>Makes "no dynamic memory" something an inspection can prove</td></tr>
+  <tr><td class="nowrap">DD-03</td><td>Swappable implementations behind pure C interfaces, chosen at link time</td><td>The same logic links against stubs on the host and real providers on the target. No function pointers</td></tr>
+  <tr><td class="nowrap">DD-04</td><td>Reporting disabled at start</td><td>A quiet start is safer and easier to verify than autonomous output</td></tr>
+  <tr><td class="nowrap">DD-07</td><td>The command handler asks the manager; it never writes the flag</td><td>One owner for the one piece of shared state</td></tr>
+  <tr><td class="nowrap">DD-12</td><td>FDIR events on their own APID, stamped with the confirming report's time</td><td>The verified housekeeping stream stays unchanged, and an event lines up with its data on the ground</td></tr>
+  <tr><td class="nowrap">DD-13</td><td>A confirmed level per parameter, raised by saturating counters, acting only on a rise</td><td>A sustained condition is reported once, and a warning can escalate to critical</td></tr>
+  <tr><td class="nowrap">DD-18</td><td>Renode, not QEMU, as the LEON3 emulator</td><td>Reproducible virtual time, scriptable boot state and hooks, platform described as text (see below)</td></tr>
+</table></div>
+
+<h2>Target and emulator</h2>
+
+<p>The target is RTEMS 7 with the standard sparc/leon3 BSP, run on Renode's
+LEON3 platform. Renode starts the processor raw, so the launch script
+performs the two duties a boot loader would: it sets the initial stack
+pointer at the top of RAM, without which the BSP halts before any console
+output, and it programs the GPTIMER prescaler, without which time runs
+five times slow.</p>
+
+<p><strong>Why Renode and not QEMU.</strong> QEMU's <code>leon3_generic</code>
+machine models the same core and was the obvious alternative. Renode was
+chosen for what the verification needed:</p>
+
+<ul>
+  <li><strong>Reproducible time.</strong> Virtual time advances by executed
+    instructions, so the same image gives the same timestamps and sequence
+    counts every run. System tests re-run on 2026-10-29 and 2026-11-03
+    reproduced the 2026-10-16 recorded run exactly.</li>
+  <li><strong>Scriptable state and hooks.</strong> A hook on <code>malloc</code>
+    is the run-time evidence that nothing allocates after startup, and
+    hooks on the BSP fatal handler located the silent boot fault.</li>
+  <li><strong>Platform as data.</strong> The machine is a text description,
+    so a peripheral, such as a second UART for a real downlink sink, is
+    added without writing emulator code.</li>
+</ul>
+
+<p>Neither emulator models caches, wait states or bus contention, so timing
+from either is indicative only. Nothing in the flight code depends on
+Renode: everything emulator-specific lives in <code>tools/renode/</code>.
+QEMU was not run on this image.</p>

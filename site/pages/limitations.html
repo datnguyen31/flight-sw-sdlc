@@ -1,0 +1,74 @@
+<p>A verification result is only as useful as its stated boundary. This page
+lists what the project does not claim, the open items with their closure
+actions, and what would still be required before the software could be
+called flight-ready. It is the short answer to "what is this not?"</p>
+
+<div class="panel warn">
+  <p class="panel-title">This is not flight software</p>
+  <p>It is a flight-representative capstone: one onboard function, run on an
+  emulated target, verified against requirements written for this project.
+  The verdict "verified" applies to that scope only.</p>
+</div>
+
+<h2>What is representative, not real</h2>
+
+<ul>
+  <li><strong>Parameters and limits.</strong> The 32-parameter set, the limit
+    values (raw 12-bit counts) and the parameter providers are training
+    values. The target's provider is a simulator.</li>
+  <li><strong>Telemetry sink.</strong> The target sink is a console
+    stand-in. It is not a flight sink: on a real UART it would cost about
+    26 ms per housekeeping packet.</li>
+  <li><strong>Safe mode.</strong> It sets an indicator and reports it.
+    Safing actions such as load shedding and attitude changes are
+    system-level behaviour beyond this unit. The code marks the hook.</li>
+  <li><strong>Emulated timing.</strong> Renode models no caches, wait states
+    or bus contention, and its UART transmits instantly. Emulated time is
+    deterministic, so a jitter of 0 &micro;s says nothing about interrupt
+    latency on a real LEON3.</li>
+  <li><strong>BSP.</strong> The standard RTEMS leon3 BSP, with two
+    boot-loader duties done by the Renode script. It is not a mission
+    BSP.</li>
+  <li><strong>Validation.</strong> Done by the developer against written
+    needs. No operator or ground-segment user took part.</li>
+</ul>
+
+<h2>Open items</h2>
+
+<div class="table-wrap"><table>
+  <tr><th>ID</th><th>Item</th><th>Closure action</th><th>Blocks v1.0?</th></tr>
+  <tr><td>OI-1</td><td>HKS-SR-140 jitter and absolute SR-150 timing need hardware</td><td>Run the flight image on flight-representative LEON3 hardware with a queued downlink sink and read the timing record already in the flight build. Pass if jitter is under 400 ms with 0 overruns</td><td>No, carried openly</td></tr>
+  <tr><td>OI-2</td><td>HKS-SR-170 conformance is partly checked</td><td>The six Required findings are corrected and the MISRA gate is in CI. Still to do: run clang-tidy, then a qualified MISRA checker or a recorded manual inspection of the rules cppcheck does not implement</td><td>No, carried openly</td></tr>
+  <tr><td>OI-3</td><td>ISVV not executed</td><td>The mentor executes items I-1 to I-4 and records the results</td><td>Yes, if ISVV raises a defect</td></tr>
+  <tr><td>OI-4</td><td>SYS-3: safe-mode state is not in telemetry</td><td>Decide between an informative "safe mode exited" event (recommended, a new requirement) and a status parameter in the report (changes the frozen report structure)</td><td>No, a requirements gap</td></tr>
+  <tr><td>OI-5</td><td>Target build not yet in CI</td><td>Publish the RTEMS toolchain image so the target build and system tests run on every push. Until then they are run by hand</td><td>No</td></tr>
+</table></div>
+
+<h2>What would still be required before flight</h2>
+
+<p>This is the list a project reviewer would expect, in rough order of
+what it would take to close each gap.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Area</th><th>What is needed</th></tr>
+  <tr><td>Target hardware</td><td>Run and measure on flight-representative LEON3 hardware, with the real clock, interrupts, caches and bus. Close OI-1 with absolute timing and jitter figures</td></tr>
+  <tr><td>Mission BSP and I/O</td><td>A mission BSP, a real parameter acquisition path and a real downlink sink with its own timing and error behaviour</td></tr>
+  <tr><td>Independent verification</td><td>Execute the ISVV plan, then disposition every finding. An independent party should also repeat the key analyses</td></tr>
+  <tr><td>Coding standard</td><td>Full MISRA C:2012 conformance with a qualified checker, clang-tidy in CI, and every deviation logged with a sign-off</td></tr>
+  <tr><td>Structural coverage</td><td>Measure statement, branch and, as the criticality class requires, MC/DC coverage. Not measured in this project</td></tr>
+  <tr><td>Toolchain qualification</td><td>Qualify or justify the compiler, linker, RTOS build and test tools for the software criticality class</td></tr>
+  <tr><td>Software criticality</td><td>A formal software criticality classification from a system-level safety analysis, which would set the rigor of all of the above</td></tr>
+  <tr><td>FDIR and safing</td><td>Link to the system FDIR design: recovery actions per parameter, load shedding, a fault hierarchy above the monitor, and closure of OI-4</td></tr>
+  <tr><td>Robustness</td><td>Fault injection beyond limit and staleness faults, such as memory corruption, queue overflow, clock faults and radiation effects, plus a stack and worst-case execution time analysis on the real target</td></tr>
+  <tr><td>Operations</td><td>Review by operators and ground-segment engineers, ground database definitions and procedures</td></tr>
+  <tr><td>Formal reviews</td><td>The mission's review gates, such as PDR, CDR, QR and AR, with a controlled configuration and release process</td></tr>
+</table></div>
+
+<h2>Next increments</h2>
+
+<p>The design was built to accept further capability without rework:
+configurable report definitions (PUS Service 3 create, enable and disable
+per structure ID, deferred by DD-05), a real downlink sink behind the
+existing interface, a deeper FDIR hierarchy, and a mission BSP on real
+hardware. Each would attach as new requirements and be verified the same
+way.</p>

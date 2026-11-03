@@ -1,0 +1,83 @@
+<p>The project follows a tailored, incremental V-model, as planned in the
+<a href="{{repo}}/docs/software-development-plan.md">software development
+plan</a>. Each increment carries one capability down the left side of the
+V (requirements, design, code) and back up the right side (unit,
+integration and system verification). Verification is therefore planned
+against requirements from the start, not invented after the code.</p>
+
+<h2>The V-model</h2>
+
+<figure>
+<!--figure:vmodel-->
+<figcaption>Figure 2. Each level on the right verifies the level opposite it
+on the left. Validation closes the loop against the mission needs, the
+question verification cannot answer: were these the right
+requirements?</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+  <tr><th>Specification level</th><th>Verified by</th><th>Evidence</th></tr>
+  <tr><td>Mission needs, HKS-SYS-010 to 040</td><td>Validation</td><td>Each need demonstrated by system behaviour on the target</td></tr>
+  <tr><td>Software requirements, HKS-SR and HKS-FD</td><td>System verification</td><td>ST-01 to ST-10, one boot, verdicts from captured telemetry only</td></tr>
+  <tr><td>Architecture</td><td>Integration</td><td>Flight image end to end on Renode, every packet decoded by an independent ground decoder</td></tr>
+  <tr><td>Detailed design</td><td>Unit verification</td><td>66 test cases on the host, byte-exact encoder vector, debounce at every boundary</td></tr>
+</table></div>
+
+<h2>Increments and phases</h2>
+
+<div class="table-wrap"><table>
+  <tr><th>Phase</th><th>Main outputs</th><th>Baseline</th></tr>
+  <tr><td>Planning, requirements</td><td>Software development plan; 3 system needs and 18 software requirements, each with a rationale, a parent and a verification method</td><td class="nowrap"><code>req-baseline-v0.1</code></td></tr>
+  <tr><td>Architecture</td><td>Component architecture, the two interfaces, task model, data model against CCSDS and PUS</td><td class="nowrap"><code>design-baseline-v0.1</code></td></tr>
+  <tr><td>Detailed design</td><td>Per-release pipeline, packet layout field by field, concurrency, timing analysis revision 1</td><td class="nowrap"><code>design-detailed-v0.1</code></td></tr>
+  <tr><td>Implementation, slice 1</td><td>Command and state logic, unit tests, CI with strict warnings and static analysis</td><td class="nowrap"><code>impl-v0.1</code></td></tr>
+  <tr><td>Implementation, slice 2</td><td>Full data path, end to end on RTEMS 7 sparc/leon3 under Renode</td><td class="nowrap"><code>impl-v0.2</code></td></tr>
+  <tr><td>FDIR increment</td><td>1 system need and 9 FDIR requirements, FDIR design, code and tests; timing analysis revision 2</td><td class="nowrap"><code>fdir-v0.1</code></td></tr>
+  <tr><td>System verification, ISVV plan</td><td>System test specification and results, timing measurement, ISVV plan</td><td class="nowrap"><code>vv-v0.1</code></td></tr>
+  <tr><td>Closure</td><td>Verification and validation report, technical report, MISRA corrections and gate, release notes</td><td class="nowrap"><code>v1.0</code> (pending review)</td></tr>
+</table></div>
+
+<p>The FDIR increment was added alongside the baseline, not by editing it.
+The baseline requirements stayed frozen, and the ones the increment
+affected (cycle timing, the command set) were re-verified rather than
+assumed to still hold.</p>
+
+<h2>Controls that kept it traceable</h2>
+
+<ul>
+  <li><strong>Verification method fixed when the requirement is written.</strong>
+    Test, Analysis, Inspection or Review is chosen with the requirement and
+    never changed by later evidence. A requirement assigned Review stays
+    closed by Review, even when tests were added on top.</li>
+  <li><strong>Every baseline is an annotated git tag.</strong> Any reviewed
+    state can be checked out and rebuilt.</li>
+  <li><strong>Every change is reviewed by pull request.</strong> Each phase
+    was a pull request (PRs #1 to #8) reviewed before merge, with
+    findings dispositioned in the PR.</li>
+  <li><strong>Commits name requirements.</strong> A commit that satisfies or
+    changes a requirement carries its ID.</li>
+  <li><strong>Documents are versioned like code.</strong> Requirements,
+    design and verification records are Markdown in the repository, so
+    they diff and review like code.</li>
+  <li><strong>CI on every push.</strong> Build with warnings as errors, 66
+    unit tests, cppcheck, and a MISRA C:2012 gate that fails on any
+    Mandatory or Required finding.</li>
+</ul>
+
+<h2>Traceability</h2>
+
+<p>The <a href="{{repo}}/verification/traceability-matrix.md">traceability
+matrix</a> is the spine of the evidence. From any requirement, one row
+gives the verification method, the design element, the code, the
+verification evidence, the ISVV item and the status. Each module and public
+function also names, in a comment, the requirement IDs it implements, so
+the trace runs from code back to requirement without leaving the file.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Requirement</th><th>Method</th><th>Design and code</th><th>Evidence</th><th>Status</th></tr>
+  <tr><td>HKS-SR-080 encoding</td><td>Inspection</td><td>Encoder, <code>hk_pus_encoder.c</code></td><td>Inspection against CCSDS 133.0-B and ECSS-E-ST-70-41C; byte-exact vector; independent decoder on every packet</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>HKS-FD-030 debounce</td><td>Test</td><td>Monitor, <code>hk_monitor.c</code></td><td>Unit tests at every boundary; ST-07, ST-08, ST-10 with N &minus; 1</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>HKS-SR-150 cycle time</td><td>Analysis</td><td>Collection task</td><td>Timing analysis revision 3: 0.99 ms against 50 ms; measured worst cycle 0.57 ms</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>HKS-SR-140 jitter</td><td>Test</td><td>Rate-monotonic period</td><td>0 &micro;s on Renode, indicative only; hardware measurement outstanding</td><td><span class="status warn">Partial</span></td></tr>
+</table></div>
+<p>Four example rows. The full matrix covers all 31 requirements.</p>

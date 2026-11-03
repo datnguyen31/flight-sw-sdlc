@@ -1,0 +1,94 @@
+<p>An onboard housekeeping telemetry service for a satellite computer, built
+under a complete, traceable software life cycle following ECSS-E-ST-40C
+(software engineering) and ECSS-Q-ST-80C (product assurance). The code is
+deliberately small. The subject of the project is the process around it:
+requirements with their reasons, recorded design decisions, fault
+management as a planned increment, verification at three levels, and a
+report that states what it cannot claim.</p>
+
+<div class="tiles" role="list">
+  <div class="tile" role="listitem">
+    <p class="tile-label">Requirements</p>
+    <div class="tile-value">31</div>
+    <div class="tile-note">4 system, 18 software, 9 FDIR</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">Verified by assigned method</p>
+    <div class="tile-value">29 <small>of 31</small></div>
+    <div class="tile-note">2 partial, 0 failed</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">Unit tests (host)</p>
+    <div class="tile-value">66 <small>/ 66</small></div>
+    <div class="tile-note">10 Unity suites</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">System tests (target)</p>
+    <div class="tile-value">10 <small>/ 10</small></div>
+    <div class="tile-note">RTEMS 7 on emulated LEON3</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">MISRA C:2012 Required</p>
+    <div class="tile-value">0</div>
+    <div class="tile-note">findings, gated in CI</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">Flight code</p>
+    <div class="tile-value">1,260 <small>lines</small></div>
+    <div class="tile-note">C11, code lines only (cloc)</div>
+  </div>
+</div>
+
+<h2>What the service does</h2>
+
+<p>Operators know a spacecraft's health only through its telemetry. If the
+housekeeping stream stops, cannot be read, or cannot be placed in time,
+they are blind, and a fault can develop faster than the next ground
+contact. The service therefore does two jobs:</p>
+
+<ul>
+  <li><strong>Reports health.</strong> It samples 32 parameters every
+    second and, when ground has enabled reporting, sends a CCSDS space
+    packet carrying a PUS Service 3 housekeeping report (TM[3,25]) every
+    four seconds, with onboard CUC time and a CRC.</li>
+  <li><strong>Watches health onboard.</strong> It checks every parameter
+    against soft and hard limits. A condition confirmed over three
+    consecutive samples is reported as a PUS Service 5 event, and a
+    critical one puts the unit in safe mode until ground clears it.</li>
+</ul>
+
+<p>It runs as two static RTEMS tasks on RTEMS 7 (BSP sparc/leon3), executed
+on the Renode emulator's LEON3 platform.</p>
+
+<h2>Project at a glance</h2>
+
+<div class="table-wrap"><table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Standards</td><td>ECSS-E-ST-40C, ECSS-Q-ST-80C, ECSS-E-ST-70-41C (PUS-C), CCSDS 133.0-B, MISRA C:2012 subset</td></tr>
+  <tr><td>Life cycle</td><td>Tailored incremental V-model: a baseline increment, then an FDIR increment</td></tr>
+  <tr><td>Target</td><td>RTEMS 7, BSP sparc/leon3, on Renode 1.17.0. No flight-representative hardware</td></tr>
+  <tr><td>Language</td><td>C11, static allocation only, strict warnings as errors</td></tr>
+  <tr><td>Verification</td><td>Unit (host), integration and system (target), timing analysis and measurement, inspection, review</td></tr>
+  <tr><td>Independent verification</td><td>Risk-based ISVV plan, 4 items. Execution by the mentor, results pending</td></tr>
+  <tr><td>Status</td><td>Release v1.0, final review in progress</td></tr>
+</table></div>
+
+<h2>Where to read next</h2>
+
+<div class="table-wrap"><table>
+  <tr><th>Page</th><th>What it answers</th></tr>
+  <tr><td><a href="architecture.html">Architecture</a></td><td>How the service is structured, the RTEMS task model, and the decisions behind it</td></tr>
+  <tr><td><a href="lifecycle.html">Life cycle (V-model)</a></td><td>How the work moved from mission need to verified code, and the baselines along the way</td></tr>
+  <tr><td><a href="verification.html">V&amp;V results</a></td><td>What is verified, by what evidence, what verification found, and what validation found</td></tr>
+  <tr><td><a href="limitations.html">Limitations</a></td><td>What the project does not claim, the open items, and what flight would still require</td></tr>
+  <tr><td><a href="report.html">Technical report</a></td><td>The whole story in one document, generated from the repository</td></tr>
+</table></div>
+
+<div class="panel">
+  <p class="panel-title">Evidence lives in the repository</p>
+  <p>Every figure on this site comes from a document in the
+  <a href="https://github.com/datnguyen31/flight-sw-sdlc">GitHub repository</a>,
+  named in the sources box at the top of each page. The
+  <a href="{{repo}}/verification/traceability-matrix.md">traceability matrix</a>
+  links each requirement to its design element, code, tests and status.</p>
+</div>

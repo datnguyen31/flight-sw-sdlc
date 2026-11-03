@@ -36,3 +36,4 @@ _deps/
 MY_NOTE.md
 # Python
 __pycache__/
+build-site/

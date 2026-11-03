@@ -1,0 +1,158 @@
+<p>This page answers two questions. Is every requirement verified, and by
+what? And were these the right requirements for the mission? Nothing is
+claimed beyond what the evidence shows. The full account is the
+<a href="{{repo}}/docs/verification-report.md">verification and validation
+report</a>.</p>
+
+<h2>Verdict</h2>
+
+<div class="tiles" role="list">
+  <div class="tile" role="listitem">
+    <p class="tile-label">Verified</p>
+    <div class="tile-value">29</div>
+    <div class="tile-note">by each requirement's assigned method</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">Partial</p>
+    <div class="tile-value">2</div>
+    <div class="tile-note">HKS-SR-140, HKS-SR-170</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">Failed</p>
+    <div class="tile-value">0</div>
+  </div>
+  <div class="tile" role="listitem">
+    <p class="tile-label">Independently checked</p>
+    <div class="tile-value">0</div>
+    <div class="tile-note">ISVV planned, execution pending</div>
+  </div>
+</div>
+
+<div class="table-wrap"><table>
+  <tr><th>Requirement group</th><th>Assigned method</th><th>Evidence</th><th>Status</th></tr>
+  <tr><td>System needs, SYS-010 to 040</td><td>Test</td><td>System tests ST-01 to ST-10 on target</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>Acquisition, SR-010 to 040</td><td>Review, Test</td><td>Design review; unit tests; ST-01, ST-06</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>Reporting, SR-050 to 090</td><td>Review, Test, Inspection</td><td>Data model review; encoder inspection against CCSDS 133.0-B and ECSS-E-ST-70-41C; byte-exact vector; independent decoder on every packet</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>Command and state, SR-100 to 130</td><td>Test</td><td>Unit tests; ST-01 to ST-04</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>Jitter, SR-140</td><td>Test</td><td>0 &micro;s measured over 480 releases on Renode. Emulated time is deterministic, so this is indicative only</td><td><span class="status warn">Partial</span></td></tr>
+  <tr><td>Collection timing, SR-150</td><td>Analysis</td><td>Timing analysis revision 3: 0.99 ms against 50 ms. Measured worst cycle 0.57 ms</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>No dynamic allocation, SR-160</td><td>Inspection</td><td>Inspection of <code>src/app</code> and <code>src/fdir</code>; Renode <code>malloc</code> hook saw no call after startup</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>Coding standard, SR-170</td><td>Inspection</td><td>Strict compiler flags, cppcheck, and a MISRA gate with 0 Mandatory or Required findings. Covers part of the rule set; clang-tidy not run</td><td><span class="status warn">Partial</span></td></tr>
+  <tr><td>Tasks, SR-180</td><td>Review</td><td>Task design review; inspection of the task headers and startup</td><td><span class="status ok">Verified</span></td></tr>
+  <tr><td>FDIR, FD-010 to 090</td><td>Test, Analysis, Inspection</td><td>Four FDIR unit suites plus cases in two others; ST-06 to ST-10; timing analysis revisions 2 and 3</td><td><span class="status ok">Verified</span></td></tr>
+</table></div>
+
+<h2>Evidence by level</h2>
+
+<div class="table-wrap"><table>
+  <tr><th>Level</th><th>Evidence</th><th>Result</th></tr>
+  <tr><td>Unit</td><td>10 Unity suites, 66 test cases, host build</td><td><span class="status ok">66 / 66 pass</span></td></tr>
+  <tr><td>Static</td><td>Compiler <code>-Wall -Wextra -Werror -Wconversion -Wshadow -Wpedantic</code>; cppcheck; MISRA C:2012 gate</td><td><span class="status ok">Clean</span>, 0 Mandatory or Required findings</td></tr>
+  <tr><td>Integration</td><td>Flight image end to end on Renode with a scripted ground station; every packet decoded by an independently written decoder</td><td><span class="status ok">Pass</span></td></tr>
+  <tr><td>System</td><td>ST-01 to ST-10 in one boot, verdicts from captured telemetry only</td><td><span class="status ok">10 / 10 pass</span>, reproduced on two later runs</td></tr>
+  <tr><td>System, negative</td><td>Five tampered logs and one code mutant (debounce N changed from 3 to 2), to check the checker</td><td><span class="status ok">All detected</span></td></tr>
+  <tr><td>Analysis</td><td>Worst-case timing, revision 3</td><td>0.99 ms against a 50 ms limit</td></tr>
+  <tr><td>Measurement</td><td>Instrumented flight task, 480 releases</td><td>Worst cycle 0.57 ms, worst release 1.30 ms, 0 overruns</td></tr>
+  <tr><td>ISVV</td><td>Risk-based sample of four items</td><td><span class="status todo">Pending</span> mentor execution</td></tr>
+</table></div>
+
+<h2>What verification found</h2>
+
+<p>System verification raised four findings. They are listed because
+finding things is the purpose of verification, and each one changed the
+project.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>ID</th><th>Finding</th><th>Outcome</th></tr>
+  <tr><td>SYS-1</td><td>A malformed uplink frame was rejected silently, so the rejection could not be observed</td><td><span class="status ok">Fixed</span>. ST-04 verifies it</td></tr>
+  <tr><td>SYS-2</td><td>ST-10 as specified could not detect an off-by-one in the debounce count N. A mutant with N = 2 passed it</td><td><span class="status ok">Fixed</span>. The test now also runs N &minus; 1 samples, and the mutant fails</td></tr>
+  <tr><td>SYS-3</td><td>Safe-mode state is not in telemetry, so ground cannot see that a clear took effect</td><td><span class="status warn">Open</span>. Requirements decision needed (OI-4)</td></tr>
+  <tr><td>SYS-4</td><td>The output path cost 2 to 4 times its analysis bound</td><td><span class="status ok">Closed</span> by timing analysis revision 3</td></tr>
+</table></div>
+
+<h3>Two findings worth reading in full</h3>
+
+<p><strong>The tests were tested (SYS-2).</strong> All ten system tests
+passed first time, which is not evidence that they would catch a defect.
+So the checker was attacked: five deliberately tampered logs and one code
+mutant. The mutant changed the debounce count from 3 to 2 and still passed
+the specified ST-10, which only tried a single out-of-limit sample. The
+specification was extended with an N &minus; 1 run, and the mutant now
+fails.</p>
+
+<p><strong>Measurement corrected the analysis (SYS-4).</strong> The
+analysis said a collection cycle costs 0.99 ms. Measurement gave 0.57 ms,
+so the total agreed with a wide margin. The split did not agree: the
+console sink cost far more than the analysis assumed for a queue handoff,
+and the computation far less. Revision 3 bounds the sink per
+implementation, and shows that this console stand-in on a real 115200-baud
+UART would cost about 26 ms per packet. That is why it must not be the
+flight sink.</p>
+
+<h2>MISRA C:2012 conformance</h2>
+
+<p>The coding standard names the MISRA C:2012 Mandatory and Required rules
+as its basis. A first run of cppcheck's MISRA addon found six Required
+findings, with no deviations logged. All six were corrected in code, with
+no change in behaviour:</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Rule</th><th>Where</th><th>Correction</th></tr>
+  <tr><td>12.2 &times; 2</td><td>Encoder header flag constants</td><td>Written as the 16-bit literals <code>0x0800u</code> and <code>0xC000u</code></td></tr>
+  <tr><td>10.8 &times; 2</td><td>Encoder packet error control</td><td>Pointer differences held in <code>ptrdiff_t</code> before the cast</td></tr>
+  <tr><td>8.4</td><td><code>Init</code> entry point</td><td>Prototype placed before the definition</td></tr>
+  <tr><td>21.8</td><td>End of the scripted run</td><td><code>rtems_shutdown_executive(0)</code> instead of <code>exit()</code></td></tr>
+</table></div>
+
+<p>A MISRA gate now runs in CI on every push and fails on any Mandatory or
+Required finding, or on an addon that did not run. HKS-SR-170 stays
+Partial for an honest reason: cppcheck's addon covers only part of the
+MISRA rule set, and clang-tidy is not yet run. A clean gate shows that no
+checked rule is violated. It is not a full conformance claim.</p>
+
+<h2>Validation</h2>
+
+<p>Verification asks whether the service meets its requirements.
+Validation asks whether those were the right requirements. The yardstick
+is the four mission needs, written from the mission side.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Mission need</th><th>Demonstrated behaviour</th><th>Validated</th></tr>
+  <tr><td>SYS-010: operators can monitor platform health</td><td>A well-formed report every 4 s while enabled, 32 parameters, decodable by an independent ground decoder. A failed source shows as a stale marker and reporting carries on</td><td><span class="status ok">Yes</span></td></tr>
+  <tr><td>SYS-020: operators control the stream</td><td>Starts quiet, reports on ENABLE, stops on DISABLE, rejects bad commands visibly with no state change</td><td><span class="status ok">Yes</span></td></tr>
+  <tr><td>SYS-030: telemetry is placed on the mission timeline</td><td>Every report carries the CUC time of its collection. Events carry the time of the report that confirmed them</td><td><span class="status ok">Yes</span></td></tr>
+  <tr><td>SYS-040: autonomous response to out-of-limit health</td><td>Confirmed conditions reported by severity, transients ignored, critical condition holds safe mode until ground clears it</td><td><span class="status warn">Yes, with a gap</span> (OI-4)</td></tr>
+</table></div>
+
+<div class="panel warn">
+  <p class="panel-title">What validation found that verification did not</p>
+  <p>Every requirement under SYS-040 passes. But an operator who sends
+  CLEAR_SAFE_MODE gets "accepted" back and nothing in telemetry showing
+  that safe mode was left. The requirement does not ask for it, so
+  verification could not catch it. It took asking what the operator needs.
+  It is carried as an open item with a recommended new requirement, an
+  informative "safe mode exited" event, not patched quietly under the
+  existing one.</p>
+</div>
+
+<p>The developer did the validation, against written mission needs, with the
+mentor as review authority. No operator or ground-segment user took part.
+On a real project that is the first thing to add.</p>
+
+<h2>Independent verification (ISVV)</h2>
+
+<p>The ISVV sample was chosen by risk, and each item names an independent
+method and the developer artefacts the verifier must not use. The
+developer wrote the plan, and the result columns belong to the
+independent reviewer.</p>
+
+<div class="table-wrap"><table>
+  <tr><th>Item</th><th>Subject</th><th>Why it was chosen</th><th>Result</th></tr>
+  <tr><td>I-1</td><td>HKS-SR-080 encoder</td><td>A format error corrupts every packet</td><td><span class="status todo">Pending</span></td></tr>
+  <tr><td>I-2</td><td>HKS-FD-030 debounce</td><td>An off-by-one makes FDIR fire early or never</td><td><span class="status todo">Pending</span></td></tr>
+  <tr><td>I-3</td><td>HKS-FD-060 and 080 safe mode</td><td>Worst consequence, and a flag shared between two tasks</td><td><span class="status todo">Pending</span></td></tr>
+  <tr><td>I-4</td><td>FDIR requirements FD-010 to 090</td><td>New requirements may be ambiguous or untestable</td><td><span class="status todo">Pending</span></td></tr>
+</table></div>
+
+<p>No requirement is claimed as independently checked. If ISVV raises a
+defect, it reopens the affected requirement.</p>
