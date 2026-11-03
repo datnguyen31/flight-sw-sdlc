@@ -25,7 +25,18 @@ flowchart LR
 ```
 
 **Status (v1.0):** 31 requirements, 29 verified, 2 partial with closure
-actions, 0 failed. 66/66 unit tests, 10/10 system tests on target.
+actions, 0 failed. 66/66 unit tests, 10/10 system tests on target. 0 MISRA
+C:2012 Mandatory or Required findings, gated in CI. 1,260 lines of flight
+C (cloc, code lines only; see the technical report §4 for the method).
+
+## Project links
+
+| | |
+|---|---|
+| Technical report | [docs/technical-report.md](docs/technical-report.md) |
+| Project website | _pending: published at the portfolio stage, after the final review_ |
+| Release | _pending: `v1.0` is tagged after the final review and defense are accepted_ |
+| Author | Dat Nguyen, [GitHub](https://github.com/datnguyen31) |
 
 | Read | For |
 |---|---|
@@ -33,17 +44,19 @@ actions, 0 failed. 66/66 unit tests, 10/10 system tests on target.
 | [Verification and validation report](docs/verification-report.md) | What is verified, by what, and what is open |
 | [Traceability matrix](verification/traceability-matrix.md) | Requirement → design → code → test → status |
 | [Release notes](docs/release-notes-v1.0.md) | What v1.0 contains |
+| [Design decisions](design/design-decisions.md) | DD-01 to DD-18, each with its rationale, including DD-18 (Renode, not QEMU) |
+| [Coding standard](docs/coding-standard.md) | MISRA C:2012 subset, house rules, and how CI enforces them |
 
 ## Repository layout
 
 1. `requirements/`: baseline and FDIR-increment requirements, each with a rationale, parent and verification method
-2. `design/`: architecture, data model, detailed and FDIR design, design decisions DD-01 to DD-17
+2. `design/`: architecture, data model, detailed and FDIR design, design decisions DD-01 to DD-18
 3. `src/app`: the onboard application (logic in `src/`, RTEMS tasks in `tasks/`, platform in `rtems/`)
 4. `src/fdir`: fault detection, isolation and recovery, kept separate for clarity and review
 5. `test/`: unit tests (host, Unity) and system tests (target, ST-01 to ST-10)
 6. `verification/`: traceability matrix, timing analysis and measurement, system test spec and results, ISVV record
 7. `docs/`: development plan, coding standard, verification report, technical report, defense walkthrough
-8. `ci/`, `.github/workflows/`: CI pipeline (build, unit tests, static analysis, target build)
+8. `ci/`, `.github/workflows/`: CI pipeline (build, unit tests, static analysis, MISRA gate, target build)
 
 ## Build
 
@@ -53,6 +66,12 @@ Host build (unit tests via ctest):
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build
+```
+
+MISRA C:2012 gate, as CI runs it (needs cppcheck with its MISRA addon):
+
+```sh
+python3 ci/misra_gate.py
 ```
 
 Cross-build for RTEMS 7, BSP sparc/leon3 (DD-09), against the toolchain

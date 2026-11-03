@@ -16,7 +16,7 @@ verified and validated within the scope stated in
 - **Target**: RTEMS 7, sparc/leon3, run on Renode 1.17.0. A system test
   image with fault injection, ST-01 to ST-10.
 - **Documents**: requirements, architecture, detailed and FDIR design,
-  17 recorded design decisions, coding standard, timing analysis
+  18 recorded design decisions, coding standard, timing analysis
   (revision 3), measured timing, system test specification and results,
   ISVV plan, verification and validation report, technical report.
 
@@ -35,8 +35,9 @@ verified and validated within the scope stated in
 
 - **OI-1, HKS-SR-140**: jitter and absolute cycle time need a measurement
   on flight-representative hardware. This is the main open item.
-- OI-2, HKS-SR-170: six MISRA Required findings to fix or log as
-  deviations; MISRA check to add to CI.
+- OI-2, HKS-SR-170: the six MISRA Required findings are corrected and
+  the MISRA gate is in CI. Still open: clang-tidy, and the rules cppcheck
+  does not check.
 - OI-3: ISVV execution (mentor).
 - OI-4: decision on SYS-3, safe-mode state not in telemetry.
 - OI-5: target build and system tests in CI, once the toolchain image
@@ -44,10 +45,25 @@ verified and validated within the scope stated in
 
 ## Changes since vv-v0.1
 
-No source change. Documents only: verification and validation report,
-technical report, defense walkthrough, these notes, timing analysis
-revision 3 (closes SYS-4), SR-170 status corrected from "Defined" to
-"Partial", README.
+Source, for the PR #8 review (OI-2). The six MISRA C:2012 Required
+findings were corrected, with no change in behaviour:
+- `src/app/src/hk_pus_encoder.c`: the CCSDS header flags are written as
+  16-bit literals (rule 12.2), and the PEC pointer differences are held
+  in `ptrdiff_t` before the cast (rule 10.8).
+- `src/app/rtems/init.c`: `Init` has a prototype before its definition
+  (rule 8.4), and the scripted run ends with `rtems_shutdown_executive(0)`
+  instead of `exit()` (rule 21.8).
+
+CI: a MISRA gate, `ci/misra_gate.py`, fails the build on any Mandatory or
+Required finding. Unit tests (66/66), the end-to-end run, and system tests
+(10/10, the same observations as the recorded run) were re-run after the
+change.
+
+Documents: verification and validation report, technical report (with
+the code-size method and the Renode rationale), DD-18 (Renode, not QEMU),
+coding standard §1 and §3, defense walkthrough, these notes, timing
+analysis revision 3 (closes SYS-4), SR-170 status corrected from "Defined"
+to "Partial", README.
 
 ## Baselines
 

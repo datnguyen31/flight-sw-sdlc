@@ -24,6 +24,11 @@ jobs:
             -I src/app/include -I src/app/tasks -I src/app/rtems -I src/fdir/include \
             -I test/system --library=ci/rtems.cfg \
             --suppressions-list=ci/cppcheck-suppressions.txt src/app src/fdir test/system
+      # MISRA C:2012 Mandatory and Required rules on the flight code
+      # (docs/coding-standard.md S1, S3; HKS-SR-170). Advisory findings are
+      # listed, not gating.
+      - name: MISRA gate
+        run: python3 ci/misra_gate.py
 
   # Cross-compile for RTEMS 7 sparc/leon3 and run the image end to end on
   # Renode, so a change that builds on the host but breaks the target is

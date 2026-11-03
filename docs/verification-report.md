@@ -13,19 +13,19 @@ it and does not replace it.
 | Item | Value |
 |---|---|
 | Product | Housekeeping Telemetry Service (HK-TM), with the FDIR increment |
-| Baseline under report | branch `session10-closure`; flight and test sources identical to tag `vv-v0.1` (`git diff vv-v0.1 -- src test tools cmake CMakeLists.txt` is empty) |
+| Baseline under report | branch `session10-closure`. Flight and test sources are those of tag `vv-v0.1` plus the OI-2 MISRA corrections in `src/app/src/hk_pus_encoder.c` and `src/app/rtems/init.c` (§2); `git diff vv-v0.1 -- src test tools cmake CMakeLists.txt` shows only those two files. Unit, integration and system tests were re-run after the change (§3.1) |
 | Requirements | `requirements/hk-tm-baseline.md` (tag `req-baseline-v0.1`), `requirements/fdir-increment.md` (tag `fdir-v0.1`): 4 system, 18 software, 9 FDIR, **31 in total** |
 | Target | RTEMS 7, BSP sparc/leon3, on Renode 1.17.0 (DD-09). No flight-representative hardware |
 | Author | Dat Nguyen (developer) |
 | Review authority | Mentor |
-| Date | 2026-10-29 |
+| Date | 2026-10-29; revised 2026-11-03 for the PR #8 review (OI-2 MISRA corrections and gate) |
 
 ## 1. Verdict
 
 | Status | Count | Requirements |
 |---|---|---|
 | Verified | **29** | HKS-SYS-010 to 040; HKS-SR-010 to 130, 150, 160, 180; HKS-FD-010 to 090 |
-| Partial | **2** | HKS-SR-140 (jitter: hardware measurement outstanding); HKS-SR-170 (coding standard: MISRA rule check not in the gate) |
+| Partial | **2** | HKS-SR-140 (jitter: hardware measurement outstanding); HKS-SR-170 (coding standard: MISRA gate clean and in CI, but the automated check covers part of the rule set and clang-tidy is not run) |
 | Failed | 0 | |
 | Independently checked (ISVV) | 0 | ISVV is planned for 5 items. Execution is with the mentor (§4) |
 
@@ -44,7 +44,7 @@ action each. They are not closed quietly.
 | Jitter HKS-SR-140 | Test | Rate-monotonic release by design; 0 µs measured at 10 µs resolution over 480 releases on Renode, 0 overruns (S9). Emulated time is deterministic, so this is indicative only | **Partial** |
 | Collection timing HKS-SR-150 | Analysis | `verification/timing-analysis.md` rev. 1 (S5), rev. 2 with FDIR (S8), rev. 3 per-sink (S10); measured worst cycle 0.57 ms against 50 ms (S9) | Verified, corroborated by measurement |
 | No dynamic allocation HKS-SR-160 | Inspection | Inspection of `src/app`, `src/fdir`; static task and queue storage; Renode `malloc` hook: no call after startup | Verified |
-| Coding standard HKS-SR-170 | Inspection | Strict compiler flags with `-Werror` on all flight code; `cppcheck --enable=all --inconclusive` in CI, clean. MISRA addon not in CI (see below) | **Partial** |
+| Coding standard HKS-SR-170 | Inspection | Strict compiler flags with `-Werror` on all flight code; `cppcheck --enable=all --inconclusive` in CI, clean; MISRA gate (`ci/misra_gate.py`) in CI, 0 Mandatory or Required findings. clang-tidy not run (see below) | **Partial** |
 | Tasks HKS-SR-180 | Review | Task design review (S4, S5, PRs #2, #3); inspection of `tasks/hk_tasks.h`, `rtems/init.c` | Verified |
 | FDIR HKS-FD-010 to 080 | Test | Four FDIR unit suites plus FDIR cases in two others (S8); ST-06 to ST-10 | Verified |
 | FDIR resources HKS-FD-090 | Analysis, Inspection | Inspection of `src/fdir`; timing analysis rev. 2 and 3; measured releases include FDIR events | Verified |
@@ -54,33 +54,70 @@ tests were added on top of a Review or Inspection, the requirement is still
 closed by its assigned method, and the tests are supplementary
 (`verification/traceability-matrix.md`, "Verification-method control").
 
-**Why HKS-SR-170 is Partial.** `docs/coding-standard.md` §3 names
-`cppcheck --addon=misra` and `clang-tidy` as the gate. CI runs cppcheck
-without the MISRA addon, and installs clang-tidy without running it. For
-this report the MISRA addon was run by hand (cppcheck 2.7, no rule texts,
-`src/app` and `src/fdir`):
+**HKS-SR-170: MISRA findings and their disposition.** `docs/coding-standard.md`
+§3 names `cppcheck --addon=misra` and `clang-tidy` as the gate. At the
+first issue of this report CI ran cppcheck without the MISRA addon. Run by
+hand (cppcheck 2.7, no rule texts, `src/app` and `src/fdir`), the addon
+found 6 Required findings, and the deviation log was empty. The PR #8
+review asked for each to be corrected or formally deviated. All six were
+corrected, so no deviation is logged:
 
-| Category | Findings | Rules |
-|---|---|---|
-| Required | 6 | 8.4 and 21.8 in `rtems/init.c` (RTEMS `Init` entry point has no prior declaration; it calls `exit()`); 10.8 ×2 and 12.2 ×2 in `hk_pus_encoder.c` (cast of a composite expression; shift amount not provably in range to the tool) |
-| Advisory | 99 | 2.5, 8.7, 15.5, 13.3, 8.9, 5.9, 12.1, 20.1 |
+| Rule | Location | Finding | Correction |
+|---|---|---|---|
+| 12.2 ×2 | `hk_pus_encoder.c`, `CCSDS_SEC_HDR_FLAG` and `CCSDS_SEQ_UNSEGMENTED` | `(1u << 11)` and `(3u << 14)`: MISRA takes `1u` and `3u` as essentially 8-bit, so the shift exceeds the operand's width | Written as the 16-bit literals `0x0800u` and `0xC000u`. Same values |
+| 10.8 ×2 | `hk_pus_encoder.c`, `hk_pus_put_pec()` | `(size_t)(end - buf)` and `(size_t)(p - buf)` cast a composite signed expression to an unsigned type | Each pointer difference is held in a `ptrdiff_t` first, and the single value is cast |
+| 8.4 | `rtems/init.c`, `Init` | External function defined with no prior declaration (confdefs.h declares it, but after the definition) | Prototype placed before the definition |
+| 21.8 | `rtems/init.c`, end of the scripted run | `exit()` from `<stdlib.h>` | `rtems_shutdown_executive(0)`, the RTEMS call `exit()` itself ends in. All console output uses `printk`, so `exit()`'s stdio cleanup had nothing to do. The run still ends with the `[ RTEMS shutdown ]` banner |
 
-The coding standard requires every Required finding to be fixed or carried
-as a logged deviation with a reviewer sign-off, and its deviation log is
-empty. None of the six findings is a defect in behaviour: the encoder's
-output is checked byte-exact by unit test and by an independent decoder on
-every packet, and the `init.c` findings are RTEMS integration conventions.
-They are still non-conformances against the written standard, so the
-requirement is Partial (OI-2).
+None of the six was a defect in behaviour, and the re-run confirms it.
+After the change the encoder still matches its byte-exact unit vector, and
+the independent decoder still accepts every packet on target. The system
+tests reproduce the recorded run exactly (§3.1).
+
+The MISRA check is now a CI step, `ci/misra_gate.py`. It fails on any
+Mandatory or Required finding, and on an addon that did not run. It was
+run against both analyser versions in use:
+
+| cppcheck | Where | Mandatory / Required | Advisory |
+|---|---|---|---|
+| 2.7 | Development host | 0 | 101 (2.5, 8.7, 15.5, 13.3, 8.9, 5.9, 18.4, 12.1, 20.1) |
+| 2.13 | CI image (ubuntu-24.04), checked in a container | 0 | 54 |
+
+The 18.4 count (advisory, pointer arithmetic) went from 0 to 2 because the
+pointer subtraction in `hk_pus_put_pec()` is now a standalone expression.
+Advisory rules are adopted where practical (coding standard §1), and this
+is the form 10.8 asks for.
+
+cppcheck 2.13 raised two classes of finding that 2.7 does not, and the
+gate handles both as tool limitations. Neither is a deviation, because
+neither is a violation:
+
+- **8.6 ×6**: `hk_critical_host.c` and `hk_critical_rtems.c` define the
+  same three functions. CMake links one or the other per build, never
+  both. The gate's scope is the flight image, so the host-only file is
+  excluded.
+- **17.3 ×3**: calls to RTEMS functions inside `if`/`while` conditions in
+  the two task files look undeclared, because the host CI job has no RTEMS
+  headers. The gate lists these calls but does not pass them silently. The
+  target build decides them: `-Wall -Werror` makes an implicit declaration
+  a build error, and the leon3 build is warning-free.
+
+**Why HKS-SR-170 is still Partial.** The gate is clean, but it is not a
+full conformance check. cppcheck's MISRA addon implements part of the
+MISRA C:2012 rule set, and clang-tidy, which the coding standard also
+names, is still not run. A clean gate shows that no *checked* Mandatory or
+Required rule is violated. Claiming conformance to the whole subset would
+need a qualified MISRA checker, or a recorded manual inspection of the
+rules the addon does not check (OI-2).
 
 ## 3. Evidence inventory
 
 | Level | Evidence | Where | Result |
 |---|---|---|---|
-| Unit | 10 Unity suites, 66 test cases, host build | `test/unit/`, `ctest --test-dir build` | 66/66 pass (re-run 2026-10-29) |
-| Static | Compiler `-Wall -Wextra -Werror -Wconversion -Wshadow -Wpedantic`; cppcheck gate | `CMakeLists.txt`, `.github/workflows/ci.yml` | Clean (re-run 2026-10-29) |
-| Integration | Flight image end to end on Renode, scripted ground station, independent decoder | `tools/renode/run_hk_app.sh`, `tools/hk_tm_decode.py` | 4 packets, 0 events, 0 jitter (S9) |
-| System | ST-01 to ST-10, one boot, host-side capture | `verification/system-test-spec.md`, `verification/system-test-results.md` | 10/10 pass (S9); re-run 2026-10-29 at this baseline, see §3.1 |
+| Unit | 10 Unity suites, 66 test cases, host build | `test/unit/`, `ctest --test-dir build` | 66/66 pass (re-run 2026-11-03, after the OI-2 corrections) |
+| Static | Compiler `-Wall -Wextra -Werror -Wconversion -Wshadow -Wpedantic`; cppcheck gate; MISRA gate | `CMakeLists.txt`, `.github/workflows/ci.yml`, `ci/misra_gate.py` | Clean; 0 Mandatory or Required MISRA findings (re-run 2026-11-03) |
+| Integration | Flight image end to end on Renode, scripted ground station, independent decoder | `tools/renode/run_hk_app.sh`, `tools/hk_tm_decode.py` | 4 packets, 0 events, 0 jitter (S9; re-run 2026-11-03, same result) |
+| System | ST-01 to ST-10, one boot, host-side capture | `verification/system-test-spec.md`, `verification/system-test-results.md` | 10/10 pass (S9); re-run 2026-10-29 and 2026-11-03, see §3.1 |
 | System, negative | Five tampered logs and one code mutant (`HK_DEBOUNCE_N` = 2), to check the checker | `verification/system-test-results.md` §3 | Every tamper and the mutant detected |
 | Analysis | Worst-case timing, rev. 3 | `verification/timing-analysis.md` | 0.99 ms against 50 ms |
 | Measurement | Instrumented flight task, 480 releases | `verification/timing-measured.md` | Worst cycle 0.57 ms, worst release 1.30 ms, 0 overruns |
@@ -89,18 +126,19 @@ requirement is Partial (OI-2).
 
 ### 3.1 Release confirmation run
 
-The sources have not changed since `vv-v0.1`. For this report the target
-image was rebuilt and the system tests re-run at the closure baseline, to
-confirm the recorded result still reproduces:
+For this report the target image was rebuilt and the system tests re-run
+at the closure baseline, to confirm the recorded result still reproduces.
+It was run twice: on 2026-10-29, when the sources were still those of
+`vv-v0.1`, and on 2026-11-03, after the OI-2 MISRA corrections:
 
 ```
 RENODE=... test/system/run_system_tests.sh build-target/test/system/hk_system_test.exe
 ```
 
-Result, 2026-10-29: **10 / 10 PASS**, global checks PASS, 0 overruns.
+Result, 2026-10-29 and again 2026-11-03: **10 / 10 PASS**, global checks PASS, 0 overruns.
 Every scenario's observation matches the recorded run in
 `verification/system-test-results.md` §5 (16 HK packets, 4 events, the same cycles, sequence counts and CUC
-values). The run's own timing record, at the default 100 µs quantum:
+values). Both runs give the same timing record, at the default 100 µs quantum:
 
 ```
 global: 16 HK packets, 4 events, header/PEC/sequence checks PASS; max overruns 0
@@ -138,7 +176,7 @@ on an emulated target.
 | ID | Item | Why it is open | Closure action | Blocks v1.0? |
 |---|---|---|---|---|
 | OI-1 | HKS-SR-140 jitter, absolute figure | Emulated time is deterministic: 0 µs jitter says nothing about interrupt latency or contention on a real LEON3 | Run the flight image on flight-representative LEON3 hardware with a queued downlink sink, and read the DD-17 `[timing]` record (already in the flight build). Pass if `jitter_max` < 400 ms and `overruns` = 0; record the absolute SR-150 figures from the same run | No. Carried openly |
-| OI-2 | HKS-SR-170 MISRA gate | MISRA addon and clang-tidy are not in CI; 6 Required findings, deviation log empty | Fix the four encoder findings (casts and shift ranges), log 8.4 and 21.8 in `init.c` as deviations with rationale and sign-off, then add `--addon=misra` with an error exit to the CI gate | No. Carried openly |
+| OI-2 | HKS-SR-170 MISRA conformance | Done at v1.0: the 6 Required findings are corrected, and the MISRA gate is in CI and clean. Still open: the addon checks part of the rule set, and clang-tidy is not run | Run clang-tidy in CI. Then either run a qualified MISRA checker, or record a manual inspection of the rules cppcheck does not implement, and log any deviation it finds | No. Carried openly |
 | OI-3 | ISVV execution | The plan is ready; the result columns are for the mentor | Mentor executes I-1 to I-4 and fills `verification/isvv-record.md` | Yes, if ISVV raises a defect |
 | OI-4 | SYS-3, safe-mode state not in telemetry | HKS-FD-080 is met as written, but ground can confirm a clear only from command verification and the console | Decision: an informative TM[5,1] "safe mode exited" event (new requirement, no change to the HK report), or a status parameter in the report (changes the frozen SR-050 structure). Recommended: the event | No. It is a requirements gap, not a defect |
 | OI-5 | Target build in CI | The `target-build` job is skipped until a toolchain image is published (`RTEMS_TOOLCHAIN_IMAGE`) | Publish the image from `tools/docker/rtems7-leon3.Dockerfile` and set the variable. Until then, the target build and system tests are run by hand, as in §3.1 | No |

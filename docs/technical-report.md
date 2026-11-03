@@ -20,8 +20,8 @@ and enters safe mode on a critical one.
 and two are partial, each with a defined closure action. Every requirement
 traces to a design element, to code, and to its verification result
 (Appendix A). The process around the code is what this project is about.
-The code is small, about 1,300 lines of C, so that every line of the
-process stays visible.
+The code is small, 1,260 lines of flight C, so that every line of the
+process stays visible (counted as in §4, "Code size").
 
 ## 1. Mission context and objective
 
@@ -146,10 +146,61 @@ setting the initial stack pointer (without it the BSP halts before any
 console output) and the timer prescaler (without it time runs five times
 slow). Both are in `tools/renode/hk_leon3.resc`, with their reasons.
 
+**Why Renode and not QEMU** (DD-18). QEMU's `leon3_generic` machine
+models the same LEON3 core and peripherals and was the obvious
+alternative. Renode was chosen because the verification needed four things
+from the emulator:
+
+1. **Reproducible time.** Renode advances virtual time by executed
+   instructions and synchronizes in fixed quanta. The same image gives the
+   same timestamps, sequence counts and timing record on every run. Two
+   system-test runs three weeks apart matched exactly (verification report
+   §3.1). By default QEMU ties guest time to the host clock, and its
+   `-icount` mode was not evaluated.
+2. **Scriptable state and hooks.** The boot-loader duties are two lines of
+   the `.resc` script. Hooks on guest functions gave evidence directly: a
+   `malloc` hook is the run-time evidence for HKS-SR-160, and hooks on the
+   BSP fatal handler located the silent boot fault.
+3. **Platform as data.** The machine is a text description, so a
+   peripheral, such as a second UART for a queued downlink sink, is added
+   without writing a C device model into the emulator.
+4. **Headless capture**, which QEMU also offers. It did not decide the
+   choice.
+
+The choice has limits. Neither emulator models caches or bus contention,
+so emulated timing stays indicative either way (OI-1). Renode also needed
+the two boot-loader duties, and its memory growth limits a run to about
+300 s. Nothing in the flight code depends on Renode: everything
+emulator-specific is in `tools/renode/`, so moving to QEMU or to hardware
+needs a new launch script, not a code change. QEMU was not run on this
+image.
+
+**Code size.** Counted with cloc 1.90, as non-blank, non-comment lines:
+
+```
+cloc --include-lang="C,C/C++ Header" src/app src/fdir
+```
+
+| Part | Files | Code lines | Comment lines | Blank lines |
+|---|---|---|---|---|
+| Flight code, `src/app` and `src/fdir` | 38 | **1,260** (899 C, 361 header) | 497 | 325 |
+| of which the RTEMS platform layer, `src/app/rtems` | 7 | 155 | 83 | 48 |
+| of which the host-only critical-section double, `hk_critical_host.c` | 1 | 4 | 7 | 4 |
+| Unit and system test code and test doubles, `test/` (C only; the Unity framework is fetched at build time, not counted) | 15 | 1,172 | 205 | 216 |
+| Ground decoder, test checker, CI gate and run scripts (Python, shell) | 5 | 650 | 82 | 104 |
+
+The headline 1,260 is the flight code: everything under `src/`, the
+headers included, with comments and blank lines left out. The physical
+line count of the same files is 2,082. The test code is close to the
+flight code in size, which is normal for code verified to this depth.
+
 The coding standard (`docs/coding-standard.md`) is the MISRA C:2012
 Required set plus ten house rules adapted from JPL's Power of Ten. All
 flight code builds with `-Werror -Wconversion -Wshadow -Wpedantic`, and
-CI runs cppcheck on every push.
+CI runs cppcheck and a MISRA gate (`ci/misra_gate.py`) on every push. The
+gate fails on any Mandatory or Required finding. The six Required findings
+of the first MISRA run were corrected in code, not deviated (verification
+report §2).
 
 ## 5. Fault management
 
@@ -239,7 +290,7 @@ gets no telemetry confirming it (SYS-3).
 | Status | Requirements |
 |---|---|
 | Verified (29) | HKS-SYS-010 to 040; HKS-SR-010 to 130, 150, 160, 180; HKS-FD-010 to 090 |
-| Partial (2) | HKS-SR-140, jitter: needs a hardware measurement. HKS-SR-170, coding standard: the MISRA rule check is not yet in the gate |
+| Partial (2) | HKS-SR-140, jitter: needs a hardware measurement. HKS-SR-170, coding standard: the MISRA gate is clean and in CI, but it covers part of the rule set and clang-tidy is not run |
 | Failed | None |
 
 The traceability matrix (Appendix A) is the spine of the evidence. From
@@ -261,8 +312,9 @@ contention. The BSP is the standard leon3 BSP.
 - OI-1: measure jitter and cycle time on flight-representative LEON3
   hardware with a queued sink. The instrumentation is already in the
   flight build.
-- OI-2: fix the six MISRA Required findings or log them as deviations,
-  then put the MISRA check into the CI gate.
+- OI-2: the six MISRA Required findings are corrected and the MISRA gate
+  is in CI. Still to do: run clang-tidy, and cover the rules cppcheck does
+  not implement, with a qualified checker or a recorded inspection.
 - OI-3: ISVV execution by the mentor.
 - OI-4: decide SYS-3. The recommendation is an informative "safe mode
   exited" event, as a new requirement.
@@ -314,7 +366,7 @@ copy: `verification/traceability-matrix.md`. Summary:
 | SR-140 | T | rate-monotonic release | indicative only | measured, Renode | **Partial** |
 | SR-150 | A | timing analysis rev. 3 | – | measured, Renode | Verified |
 | SR-160 | I | static buffers and tasks | inspection, `malloc` hook | – | Verified |
-| SR-170 | I | coding standard, CI | compiler, cppcheck | – | **Partial** |
+| SR-170 | I | coding standard, CI | compiler, cppcheck, MISRA gate | – | **Partial** |
 | SR-180 | R | `hk_tasks.h`, `init.c` | inspection | – | Verified |
 | FD-010 | T | `hk_limits.c` | `test_hk_limits` | – | Verified |
 | FD-020 | T | monitor call in `hk_collection_step` | `test_hk_collection`, `test_hk_monitor` | ST-06 to 08, 10 | Verified |
