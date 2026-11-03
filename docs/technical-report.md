@@ -153,9 +153,9 @@ from the emulator:
 
 1. **Reproducible time.** Renode advances virtual time by executed
    instructions and synchronizes in fixed quanta. The same image gives the
-   same timestamps, sequence counts and timing record on every run. Two
-   system-test runs three weeks apart matched exactly (verification report
-   §3.1). By default QEMU ties guest time to the host clock, and its
+   same timestamps, sequence counts and timing record on every run. The
+   system tests re-run on 2026-10-29 and 2026-11-03 reproduced the
+   2026-10-16 recorded run exactly (verification report §3.1). By default QEMU ties guest time to the host clock, and its
    `-icount` mode was not evaluated.
 2. **Scriptable state and hooks.** The boot-loader duties are two lines of
    the `.resc` script. Hooks on guest functions gave evidence directly: a
