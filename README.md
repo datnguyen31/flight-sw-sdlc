@@ -34,7 +34,7 @@ C (cloc, code lines only; see the technical report §4 for the method).
 | | |
 |---|---|
 | Technical report | [docs/technical-report.md](docs/technical-report.md) |
-| Project website | _pending: published at the portfolio stage, after the final review_ |
+| Project website | <https://flightsw-datng31.duckdns.org/> |
 | Release | _pending: `v1.0` is tagged after the final review and defense are accepted_ |
 | Author | Dat Nguyen, [GitHub](https://github.com/datnguyen31) |
 
