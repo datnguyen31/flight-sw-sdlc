@@ -17,7 +17,13 @@ finding at review, not an allowance.
 
 | Rule         | Location | Rationale | Reviewer |
 | ------------ | -------- | --------- | -------- |
-| _(none yet)_ |          |           |          |
+| _(none)_     |          |           |          |
+
+The log is empty at v1.0 by choice, not by omission. The six Required
+findings the MISRA addon raised in Session 10 (8.4 and 21.8 in
+`rtems/init.c`; 10.8 ×2 and 12.2 ×2 in `hk_pus_encoder.c`) were all
+corrected in the code rather than deviated, because each had a compliant
+form with identical behaviour (`docs/verification-report.md` §2).
 
 ## 2. House rules
 
@@ -96,10 +102,33 @@ apply:
 -std=c11 -Wall -Wextra -Werror -Wconversion -Wshadow -Wpedantic
 
 # static analysis in CI (Session 6)
-cppcheck --enable=all --addon=misra ...
-clang-tidy ...
+cppcheck --enable=all --inconclusive ...
+
+# MISRA C:2012 gate in CI (v1.0): fails on any Mandatory or Required finding
+python3 ci/misra_gate.py        # cppcheck --addon=misra over src/app, src/fdir
+
+clang-tidy ...                  # named here, not yet run in CI (see below)
 ```
 
 Flight code must build and analyze clean, or carry a logged deviation per
-Section 1. These gates are wired into the pipeline in Session 6, which is
-also where the unit-test harness is properly enabled.
+Section 1. The compiler and cppcheck gates were wired into the pipeline in
+Session 6, which is also where the unit-test harness is properly enabled;
+the MISRA gate was added at v1.0.
+
+`ci/misra_gate.py` records how the addon's output is read. The addon runs
+without the licensed rule texts, so the script holds the list of Advisory
+rules and treats every other rule as Mandatory or Required. Its scope is
+the flight image: `hk_critical_host.c`, the host test build's no-op
+critical section, is left out. It and `hk_critical_rtems.c` define the
+same functions and are never linked together, so analysing both gives a
+false 8.6. On the host CI job, where the RTEMS headers are absent, the
+addon cannot decide rule 17.3 (implicit declaration) for files that
+include `<rtems.h>`. The script lists those calls instead of passing them,
+and the target build decides them: `-Wall -Werror` makes an implicit
+declaration a build error.
+
+**Limits of the automated check.** cppcheck's MISRA addon does not
+implement every MISRA C:2012 rule, and clang-tidy is not yet run. A clean
+gate shows that no checked Mandatory or Required rule is violated. It is
+not a full conformance claim, which would need a qualified MISRA checker.
+This is why HKS-SR-170 stays Partial at v1.0 (verification report OI-2).

@@ -22,8 +22,13 @@ times its bound, because the target's console sink formats each byte to a
 polled UART, not the 50 µs queued handoff assumed below (SYS-4). A report
 tick with an event measured 1300 µs against the 1286 µs these rows give,
 equal within the ±10 µs measurement resolution. No
-requirement is at risk. Revision 3 is due before the Session 10
-verification report, with a per-sink handoff assumption.
+requirement is at risk.
+
+**Revision 3 (Session 10, closes SYS-4).** The sink handoff is now bounded
+per sink, in the section "Sink handoff per sink" below. The worst-case
+table is unchanged: it is the bound for the flight configuration, a queued
+handoff to a downlink. The console stand-in gets its own bound, from the
+Session 9 measurement and from the UART line rate.
 
 ## Assumptions
 
@@ -85,6 +90,39 @@ analysis uses the figure for the code as built.
 **Correction to revision 1.** Revision 1 gave the report cycle as
 1060 µs. The rows it listed sum to 1030 µs (810 + 150 + 50 + 20). The
 conclusion did not change.
+
+## Sink handoff per sink (revision 3)
+
+The telemetry-sink interface (`hk_tm_sink.h`, DD-03) has more than one
+implementation, and they do not cost the same. Revisions 1 and 2 assumed
+only one of them.
+
+| Sink | Where | Handoff assumption | HK packet (148 B): encode + PEC + sink | Event packet (24 B) |
+|---|---|---|---|---|
+| Queued downlink | Flight configuration (not yet built; DD-03) | 50 µs: copy into a downlink queue, no formatting, no wait on hardware | 220 µs (150 + 50 + 20, as in the table above) | 80 µs |
+| Capture sink | Host unit tests | Memory copy | Not timed: host only | Not timed |
+| Console stand-in, emulated | `hk_tm_sink_console.c` on Renode | Measured: about 6 µs per byte, encode included (`timing-measured.md` §3). Bounded here at 8 µs per byte, a third over the measurement | 1184 µs | 192 µs |
+| Console stand-in, real UART | `hk_tm_sink_console.c` on LEON3 hardware | Line-rate bound. Each packet is one line, `TM` + space, two hex characters per byte and a newline, so 2*n* + 4 characters, sent by polled `printk`. At 115200 baud (8N1) one character takes 86.8 µs | 300 characters, about 26.0 ms | 52 characters, about 4.5 ms |
+
+With the console stand-in on Renode, the heaviest ordinary release is
+986 + 1184 + 20 = about 2.19 ms, and the pathological release is
+2.19 + 33 × 0.192 + 0.01 = about 8.5 ms. Both are inside 50 ms. The
+measured 1.30 ms falls under the 2.19 ms bound.
+
+**The console on a real UART does not fit the budget in every release.**
+A report tick costs about 26 ms of output alone, still inside 50 ms and
+the 1000 ms period. One event adds about 4.5 ms, and the pathological
+burst of 33 events adds about 149 ms. That burst is not "nominal load",
+so it does not break HKS-SR-150 as written, but that release would take
+about 176 ms, a sixth of the period. The console sink is a stand-in for
+emulation and bring-up, and **must not be the flight sink.** A timing
+claim on flight-representative hardware needs either the queued downlink
+or the console at a much higher line rate. The table above assumes the
+queued downlink, and so does every conclusion below.
+
+The per-byte bound for the emulated console is from one measurement, on
+an emulator that does not model the UART line (`timing-measured.md` §4).
+It is there to explain the Session 9 figures, not to predict hardware.
 
 ## Conclusion
 
