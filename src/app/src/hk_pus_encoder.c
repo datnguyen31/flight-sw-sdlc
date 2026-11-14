@@ -11,8 +11,10 @@
 
 #include "hk_pus_encoder.h"
 
-#define CCSDS_SEC_HDR_FLAG    (1u << 11) /* version 0, type TM (0) */
-#define CCSDS_SEQ_UNSEGMENTED (3u << 14)
+/* Written as 16-bit literals, not (1u << 11) and (3u << 14): MISRA 12.2
+ * takes 1u and 3u as essentially 8-bit, so those shifts exceed its width. */
+#define CCSDS_SEC_HDR_FLAG    0x0800u /* bit 11: sec-hdr=1; version 0, type TM (0) */
+#define CCSDS_SEQ_UNSEGMENTED 0xC000u /* bits 15-14: sequence flags 0b11 */
 #define CCSDS_SEQ_COUNT_MASK  0x3FFFu
 #define CCSDS_APID_MASK       0x7FFu
 #define PUS_TM_VERSION_BYTE   (2u << 4) /* PUS-C, time-ref status 0 */
@@ -88,9 +90,13 @@ uint8_t* hk_pus_put_tm_header(uint8_t* buf, const hk_tm_header_t* hdr)
 
 size_t hk_pus_put_pec(const uint8_t* buf, uint8_t* end)
 {
-    /* Packet error control over everything before it */
-    const uint8_t* p = hk_pus_put16(end, hk_crc16_ccitt(buf, (size_t)(end - buf)));
-    return (size_t)(p - buf);
+    /* Packet error control over everything before it. The pointer
+     * differences are held in ptrdiff_t first, so each cast to size_t
+     * converts a single value, not a composite expression (MISRA 10.8). */
+    const ptrdiff_t body  = end - buf;
+    const uint8_t*  p     = hk_pus_put16(end, hk_crc16_ccitt(buf, (size_t)body));
+    const ptrdiff_t total = p - buf;
+    return (size_t)total;
 }
 
 size_t hk_pus_encode(const hk_report_t* report, uint16_t seq, uint8_t* buf, size_t cap)

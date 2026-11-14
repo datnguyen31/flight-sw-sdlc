@@ -20,9 +20,9 @@
 | HKS-SR-120 | T (Test) | `hk_manager_init` default disabled (DD-04) | test_default_state_is_disabled | ST-03 |  | **Verified (Test)** |
 | HKS-SR-130 | T (Test) | Command Handler reject path (detailed-design.md §1.5); still the default case with CLEAR_SAFE_MODE added (fdir-design.md §1); frame-length check and rejection report in the command task (tasks/hk_command_task.c, SYS-1) | test_unknown_rejected_no_change; test_unknown_rejected_safe_mode_unchanged; test_only_clear_command_leaves_safe_mode | ST-04 (malformed frame and unknown opcode; SYS-1 fixed) |  | **Verified (Test)** |
 | HKS-SR-140 | T (Test) | Rate-monotonic release of the collection task (tasks/hk_collection_task.c; verification/timing-analysis.md) | Indicative only: Renode E2E max report jitter 0.000 ms, 0 period overruns; emulator timing is not representative. Final: measurement on target hardware | Measured (Renode, 480 releases): jitter 0 µs at 10 µs resolution, 0 overruns (verification/timing-measured.md). Indicative only: emulated time is deterministic |  | Partial (HW measurement pending) |
-| HKS-SR-150 | A (Analysis) | Verified by Analysis. Evidence: verification/timing-analysis.md. Revision 2 (Session 8) includes the FDIR monitor: 0.99 ms collection cycle, 3.9 ms pathological event burst, against the 50 ms budget. Pending measured confirmation in Session 9. |  | Measured (Renode): worst collection cycle 0.57 ms (two FDIR events), worst release 1.30 ms (report + event), against 50 ms (verification/timing-measured.md). Output path exceeds its analysis bound (SYS-4); total corroborated |  | **Verified (Analysis), corroborated by measurement**; HW measurement pending |
+| HKS-SR-150 | A (Analysis) | Verified by Analysis. Evidence: verification/timing-analysis.md. Revision 2 (Session 8) includes the FDIR monitor: 0.99 ms collection cycle, 3.9 ms pathological event burst, against the 50 ms budget. Revision 3 (Session 10) bounds the sink handoff per sink (SYS-4 closed); the console stand-in is not a flight sink. |  | Measured (Renode): worst collection cycle 0.57 ms (two FDIR events), worst release 1.30 ms (report + event), against 50 ms (verification/timing-measured.md). Output path exceeded its rev. 2 bound (SYS-4, closed by rev. 3); total corroborated |  | **Verified (Analysis), corroborated by measurement**; HW measurement pending |
 | HKS-SR-160 | I (Inspection) | Static report and packet buffers (hk_collection.c); task storage and queue buffers static via `rtems_*_construct` (tasks/); no malloc in src/app (DD-02) | Inspection of src/app (no allocation calls); RTEMS object counts fixed in rtems/init.c. Supporting run: a Renode hook on `malloc` saw 8 calls, all from RTEMS console/newlib initialization before the tasks start, and none in the 25 s of operation after |  |  | **Verified (Inspection)** |
-| HKS-SR-170 | I (Inspection) | Coding standard defined in docs/coding-standard.md. Verification by Inspection, enforced in CI from Session 6. |  |  |  | **Defined** |
+| HKS-SR-170 | I (Inspection) | Coding standard defined in docs/coding-standard.md. Enforced by the strict compiler flags (`HK_STRICT_WARNINGS`, -Werror) on all flight code and by the cppcheck gate in CI (`.github/workflows/ci.yml`) | Every CI run: flight code builds warning-free, passes `cppcheck --enable=all --inconclusive`, and has 0 MISRA Mandatory or Required findings (`ci/misra_gate.py`) |  |  | **Partial**: compiler, cppcheck and MISRA gates (`ci/misra_gate.py`) in CI and clean. The 6 Required findings of the Session 10 run were corrected in code, so no deviation is logged. Open: the MISRA addon checks part of the rule set, and clang-tidy is not run (docs/verification-report.md §2, OI-2) |
 | HKS-SR-180 | R (Review) | Two tasks, static priorities 10/20 and stacks (tasks/hk_tasks.h), created once at startup (rtems/init.c) | Inspection of tasks/hk_tasks.h and rtems/init.c; Renode E2E exercises both tasks |  |  | **Verified (Review)**; Inspection of code and Renode run added as supplementary evidence |
 | HKS-FD-010 | T (Test) | Limit table `g_limits`, four ordered limits per parameter, and `hk_limit_classify` (src/fdir/src/hk_limits.c; fdir-design.md §7) | test_classify_at_and_across_every_threshold; test_classify_without_soft_band; test_flight_table_rows_are_ordered; test_flight_table_holds_simulator_values |  | I-4 statement review (pending, mentor) | **Verified (Test)** |
 | HKS-FD-020 | T (Test) | `hk_monitor_check` called once per cycle in `hk_collection_step`, after the build, before the gate (hk_collection.c; fdir-design.md §1) | test_monitor_checks_every_cycle_while_reporting_disabled; test_events_leave_hk_stream_unchanged; test_nominal_report_raises_nothing | ST-06, 07, 08, 10 (ST-10 with reporting disabled) | I-4 statement review (pending, mentor) | **Verified (Test)** |
@@ -85,6 +85,21 @@ was measured on the running system (verification/timing-measured.md). This
 corroborates HKS-SR-150 and found the output path costing more than its
 analysis bound (SYS-4, analysis revision 3 due). HKS-SR-140 and the
 absolute SR-150 figures still need flight-representative hardware.
+
+Session 10 status: the evidence is consolidated in
+`docs/verification-report.md`, which is the closure document for v1.0.
+Two statuses changed. HKS-SR-170 moved from "Defined" to "Partial": the
+compiler and cppcheck gates are in CI and pass, but the MISRA rule check
+the coding standard names is not, and a manual run of it found Required
+findings. SYS-4 is closed by timing-analysis revision 3. No other row
+changed: nothing new was tested this session.
+
+PR #8 review (2026-11-03): the six MISRA Required findings were corrected
+in `hk_pus_encoder.c` and `init.c`, and the MISRA gate was added to CI.
+HKS-SR-170 stays Partial, now for a narrower reason: the automated check
+does not cover the full rule set, and clang-tidy is not run. Unit tests,
+the end-to-end run and ST-01 to ST-10 were re-run after the change, with
+the same results. No other row changed.
 
 ISVV (verification/isvv-record.md) is planned for HKS-SR-080, HKS-FD-030,
 HKS-FD-060/080 and a statement review of HKS-FD-010 to 090. The mentor

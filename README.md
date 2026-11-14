@@ -1,18 +1,62 @@
-# Flight Software SDLC
+# Flight Software SDLC: Housekeeping Telemetry Service
 
-Flight software project, developed under a formal SDLC with traceability from
-requirements through design, implementation, and verification.
+An onboard housekeeping telemetry service for a satellite computer, built
+under a complete, traceable software life cycle (ECSS-E-ST-40C,
+ECSS-Q-ST-80C). Operators know a spacecraft's health only through its
+telemetry. This service samples 32 health parameters every second, sends
+a CCSDS / PUS Service 3 housekeeping report every four seconds on ground
+command, and watches every parameter onboard: confirmed limit violations
+are reported as PUS Service 5 events, and a critical one puts the unit in
+safe mode until ground clears it. It runs on RTEMS 7 (sparc/leon3) under
+Renode. Every requirement traces to design, code and a verification
+result.
 
-## File Structure
+```mermaid
+flowchart LR
+    GS[Ground] -->|TC| CH[Command Handler] --> MGR[HK Manager]
+    PP[Parameter providers] -->|Parameter-Source I/F| SMP[Sampler]
+    SMP --> RB[Report Builder] --> MON[FDIR Monitor]
+    MON --> EVT[PUS 5 events]
+    MON -->|critical| SAFE[Safe mode]
+    RB --> ENC[PUS 3,25 encoder]
+    MGR -->|gate| ENC
+    ENC -->|Telemetry-Sink I/F| DL[Downlink]
+    EVT -->|Telemetry-Sink I/F| DL
+```
 
-1. `requirements`: System and software requirements, traceability to the mission and to tests
-2. `design`: Architecture, interface definitions, and design decisions (and justification possibly)
-3. `src/app`: The onboard application software
-4. `src/fdir`: Fault detection, isolation, and recovery logic kept deliberately separate for clarity and review
-5. `test/`: Unit, integration, and system tests, structured to produce evidence
-6. `verification/`: Verification and validation plans, review records, and ISVV artifacts (QA/QC evidence)
-7. `docs/`: SDLC plan, coding standard, and the living technical report for your capstone defense
-8. `ci/`: Continuous integration pipeline definitions for automated build and test
+**Status (v1.0):** 31 requirements, 29 verified, 2 partial with closure
+actions, 0 failed. 66/66 unit tests, 10/10 system tests on target. 0 MISRA
+C:2012 Mandatory or Required findings, gated in CI. 1,260 lines of flight
+C (cloc, code lines only; see the technical report §4 for the method).
+
+## Project links
+
+| | |
+|---|---|
+| Technical report | [docs/technical-report.md](docs/technical-report.md) |
+| Project website | <https://flightsw-datng31.duckdns.org/> |
+| Release | _pending: `v1.0` is tagged after the final review and defense are accepted_ |
+| Author | Dat Nguyen, [GitHub](https://github.com/datnguyen31) |
+
+| Read | For |
+|---|---|
+| [Technical report](docs/technical-report.md) | The whole story, from mission need to verified result |
+| [Verification and validation report](docs/verification-report.md) | What is verified, by what, and what is open |
+| [Traceability matrix](verification/traceability-matrix.md) | Requirement → design → code → test → status |
+| [Release notes](docs/release-notes-v1.0.md) | What v1.0 contains |
+| [Design decisions](design/design-decisions.md) | DD-01 to DD-18, each with its rationale, including DD-18 (Renode, not QEMU) |
+| [Coding standard](docs/coding-standard.md) | MISRA C:2012 subset, house rules, and how CI enforces them |
+
+## Repository layout
+
+1. `requirements/`: baseline and FDIR-increment requirements, each with a rationale, parent and verification method
+2. `design/`: architecture, data model, detailed and FDIR design, design decisions DD-01 to DD-18
+3. `src/app`: the onboard application (logic in `src/`, RTEMS tasks in `tasks/`, platform in `rtems/`)
+4. `src/fdir`: fault detection, isolation and recovery, kept separate for clarity and review
+5. `test/`: unit tests (host, Unity) and system tests (target, ST-01 to ST-10)
+6. `verification/`: traceability matrix, timing analysis and measurement, system test spec and results, ISVV record
+7. `docs/`: development plan, coding standard, verification report, technical report, defense walkthrough
+8. `ci/`, `.github/workflows/`: CI pipeline (build, unit tests, static analysis, MISRA gate, target build)
 
 ## Build
 
@@ -22,6 +66,12 @@ Host build (unit tests via ctest):
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build
+```
+
+MISRA C:2012 gate, as CI runs it (needs cppcheck with its MISRA addon):
+
+```sh
+python3 ci/misra_gate.py
 ```
 
 Cross-build for RTEMS 7, BSP sparc/leon3 (DD-09), against the toolchain

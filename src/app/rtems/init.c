@@ -16,7 +16,6 @@
 #include <rtems.h>
 #include <rtems/bspIo.h>
 #include <rtems/version.h>
-#include <stdlib.h>
 
 #include "hk_startup.h"
 #include "hk_tasks.h"
@@ -45,6 +44,12 @@ static void ground_script(void)
     ground_wait_ms(6000u);
 }
 
+/* The kernel calls Init through the table confdefs.h generates. Declared
+ * here, before the definition, so the external function has a visible
+ * prototype at its definition (MISRA 8.4); confdefs.h repeats the same
+ * declaration further down. */
+rtems_task Init(rtems_task_argument arg);
+
 rtems_task Init(rtems_task_argument arg)
 {
     (void)arg;
@@ -55,7 +60,11 @@ rtems_task Init(rtems_task_argument arg)
     ground_script();
 
     printk("[init] HK-TM end-to-end run complete\n");
-    exit(0);
+    /* End the run through the RTEMS API rather than exit() (MISRA 21.8).
+     * Same terminating path: exit() reaches rtems_shutdown_executive()
+     * after the atexit and stdio cleanup, which has nothing to do here
+     * since all console output goes through printk. */
+    rtems_shutdown_executive(0);
 }
 
 #include "hk_rtems_config.h"
