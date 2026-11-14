@@ -18,7 +18,8 @@ verified and validated within the scope stated in
 - **Documents**: requirements, architecture, detailed and FDIR design,
   18 recorded design decisions, coding standard, timing analysis
   (revision 3), measured timing, system test specification and results,
-  ISVV plan, verification and validation report, technical report.
+  ISVV plan and record, verification and validation report, technical
+  report.
 
 ## Verification status
 
@@ -28,6 +29,7 @@ verified and validated within the scope stated in
 | Verified | 29 |
 | Partial | 2: HKS-SR-140, HKS-SR-170 |
 | Failed | 0 |
+| ISVV | Completed by the mentor on 2026-11-11: no blocking software defect |
 | Unit tests | 66/66 pass (10 suites) |
 | System tests | 10/10 pass on target, re-run at this baseline |
 
@@ -38,8 +40,13 @@ verified and validated within the scope stated in
 - OI-2, HKS-SR-170: the six MISRA Required findings are corrected and
   the MISRA gate is in CI. Still open: clang-tidy, and the rules cppcheck
   does not check.
-- OI-3: ISVV execution (mentor).
-- OI-4: decision on SYS-3, safe-mode state not in telemetry.
+- OI-3, ISVV observations (non-blocking, for a future increment): clarify
+  the wording of HKS-FD-030, FD-070 and FD-080, including the behaviour of
+  CLEAR_SAFE_MODE while a critical condition persists; preserve a raw
+  TM[3,25] packet as qualification evidence. ISVV execution itself is
+  complete (`verification/isvv-record.md`).
+- OI-4: SYS-3, safe-mode state not in telemetry, is carried as a future
+  requirements and validation improvement.
 - OI-5: target build and system tests in CI, once the toolchain image
   is published.
 
@@ -69,3 +76,5 @@ to "Partial", README.
 
 `req-baseline-v0.1` → `design-baseline-v0.1` → `design-detailed-v0.1` →
 `impl-v0.1` → `impl-v0.2` → `fdir-v0.1` → `vv-v0.1` → `v1.0`
+
+This is a capstone release. It is not a claim of flight qualification.
