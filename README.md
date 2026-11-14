@@ -35,7 +35,7 @@ C (cloc, code lines only; see the technical report §4 for the method).
 |---|---|
 | Technical report | [docs/technical-report.md](docs/technical-report.md) |
 | Project website | <https://flightsw-datng31.duckdns.org/> |
-| Release | _pending: `v1.0` is tagged after the final review and defense are accepted_ |
+| Release | [v1.0](https://github.com/datnguyen31/flight-sw-sdlc/releases/tag/v1.0): accepted capstone release, ISVV completed with no blocking software defect (not a flight qualification claim) |
 | Author | Dat Nguyen, [GitHub](https://github.com/datnguyen31) |
 
 | Read | For |
