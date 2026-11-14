@@ -277,8 +277,9 @@ not be the flight sink.
 encoder, the debounce, safe mode, and a statement review of the FDIR
 requirements (`verification/isvv-record.md`). For each, the plan names
 an independent method, and the developer's artefacts the verifier must
-not use. Execution is with the mentor, and no requirement is claimed as
-independently checked until it is.
+not use. The mentor executed it on 2026-11-11: I-1, I-2 and I-3 passed (I-3 with
+an observation) and I-4 raised non-blocking wording points on FD-030,
+FD-070 and FD-080. No blocking software defect was found.
 
 **Validation.** Each of the four mission needs is demonstrated by system
 behaviour on the target (`docs/verification-report.md` §6). Validation
@@ -315,7 +316,8 @@ contention. The BSP is the standard leon3 BSP.
 - OI-2: the six MISRA Required findings are corrected and the MISRA gate
   is in CI. Still to do: run clang-tidy, and cover the rules cppcheck does
   not implement, with a qualified checker or a recorded inspection.
-- OI-3: ISVV execution by the mentor.
+- OI-3: ISVV observations (FD-030, FD-070, FD-080 wording; preserve a raw
+  HK packet) carried to a future increment.
 - OI-4: decide SYS-3. The recommendation is an informative "safe mode
   exited" event, as a new requirement.
 - OI-5: publish the RTEMS toolchain image so the target build and system
@@ -357,7 +359,7 @@ copy: `verification/traceability-matrix.md`. Summary:
 | SR-050 | R | report builder | `test_hk_report_builder` | ST-05 | Verified |
 | SR-060 | T | divider in `hk_collection.c` | `test_hk_collection` | ST-01 | Verified |
 | SR-070 | T | CUC 4+2 | builder, encoder tests | ST-05 | Verified |
-| SR-080 | I | `hk_pus_encoder.c` | byte-exact vector, CRC check value | ST-05, all packets | Verified (I-1 pending) |
+| SR-080 | I | `hk_pus_encoder.c` | byte-exact vector, CRC check value | ST-05, all packets | Verified (I-1 Pass) |
 | SR-090 | R | `hk_tm_sink.h` | capture sink | all packets | Verified |
 | SR-100 | T | command handler, manager | `test_hk_command` | ST-01 | Verified |
 | SR-110 | T | command handler, manager | `test_hk_command` | ST-02 | Verified |
@@ -370,12 +372,12 @@ copy: `verification/traceability-matrix.md`. Summary:
 | SR-180 | R | `hk_tasks.h`, `init.c` | inspection | – | Verified |
 | FD-010 | T | `hk_limits.c` | `test_hk_limits` | – | Verified |
 | FD-020 | T | monitor call in `hk_collection_step` | `test_hk_collection`, `test_hk_monitor` | ST-06 to 08, 10 | Verified |
-| FD-030 | T | run counters, N = 3 | `test_hk_monitor` | ST-07, 08, 10 | Verified (I-2 pending) |
+| FD-030 | T | run counters, N = 3 | `test_hk_monitor` | ST-07, 08, 10 | Verified (I-2 Pass) |
 | FD-040 | T | `hk_event.c`, APID 0x0CB | byte-exact event vector | ST-07, 08 | Verified |
 | FD-050 | T | severity subtypes | `test_hk_event`, `test_hk_monitor` | ST-07, 08 | Verified |
-| FD-060 | T | `hk_safemode_enter` | `test_hk_monitor` | ST-08 | Verified (I-3 pending) |
+| FD-060 | T | `hk_safemode_enter` | `test_hk_monitor` | ST-08 | Verified (I-3 Pass) |
 | FD-070 | T | stale counter, M = 3 | `test_hk_monitor` | ST-06 | Verified |
-| FD-080 | T | `hk_safemode.c`, CLEAR_SAFE_MODE | `test_hk_safemode`, `test_hk_command` | ST-08, 09 | Verified (I-3 pending) |
+| FD-080 | T | `hk_safemode.c`, CLEAR_SAFE_MODE | `test_hk_safemode`, `test_hk_command` | ST-08, 09 | Verified (I-3 Pass) |
 | FD-090 | A, I | static FDIR state | inspection, burst bound test | measured | Verified |
 
 ## Appendix B. Test results

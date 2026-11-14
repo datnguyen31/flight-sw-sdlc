@@ -27,10 +27,10 @@ it and does not replace it.
 | Verified | **29** | HKS-SYS-010 to 040; HKS-SR-010 to 130, 150, 160, 180; HKS-FD-010 to 090 |
 | Partial | **2** | HKS-SR-140 (jitter: hardware measurement outstanding); HKS-SR-170 (coding standard: MISRA gate clean and in CI, but the automated check covers part of the rule set and clang-tidy is not run) |
 | Failed | 0 | |
-| Independently checked (ISVV) | 0 | ISVV is planned for 5 items. Execution is with the mentor (§4) |
+| Independently checked (ISVV) | 4 sample items | Completed by the mentor: 3 Pass, 1 non-blocking requirement discrepancy, 0 software defects (§4) |
 
 Nothing is claimed as verified beyond what the evidence shows. The two
-partial items and the pending ISVV are recorded in §5 with a closure
+partial items and the ISVV observations are recorded in §5 with a closure
 action each. They are not closed quietly.
 
 ## 2. Verification by requirement group
@@ -122,7 +122,7 @@ rules the addon does not check (OI-2).
 | Analysis | Worst-case timing, rev. 3 | `verification/timing-analysis.md` | 0.99 ms against 50 ms |
 | Measurement | Instrumented flight task, 480 releases | `verification/timing-measured.md` | Worst cycle 0.57 ms, worst release 1.30 ms, 0 overruns |
 | Inspection, review | Design reviews through PRs #1 to #6; code inspection for SR-160, FD-090 | Pull requests; traceability matrix | Closed |
-| ISVV | Risk-based sample I-1 to I-4 | `verification/isvv-record.md` | Plan ready; execution pending (mentor) |
+| ISVV | Risk-based sample I-1 to I-4 | `verification/isvv-record.md` | Completed by the mentor, 2026-11-11: no blocking software defect (§4) |
 
 ### 3.1 Release confirmation run
 
@@ -153,13 +153,27 @@ encoder (I-1, every packet depends on it), the debounce (I-2, an
 off-by-one makes FDIR fire early or never), safe mode (I-3, worst
 consequence and shared between tasks), and a statement review of the
 FDIR requirements (I-4). The developer wrote the plan and the
-independence rules. The result columns are the mentor's, and they are
-empty.
+independence rules. The mentor executed the sample on 2026-11-11 and
+recorded the results in the record's result columns.
 
-This report therefore claims **no requirement as independently checked**.
-The traceability matrix shows "pending" in its ISVV column for the same
-reason. If ISVV raises a defect, it reopens the affected requirement, and
-v1.0 is not tagged until it is dispositioned.
+- **I-1 Pass.** The encoder output matches an independently derived
+  148-byte TM[3,25] packet byte for byte.
+- **I-2 Pass.** Independent boundary tests at N − 1, N and N + 1, and
+  interrupted runs, found no off-by-one.
+- **I-3 Pass, with an observation.** Shared safe-mode state is protected
+  and task priorities are coherent. The behaviour of CLEAR_SAFE_MODE while
+  a critical condition persists should be specified for a mission.
+- **I-4 Discrepancy, non-blocking.** HKS-FD-030, FD-070 and FD-080 have
+  wording points; these are requirement-quality observations, not a code
+  defect.
+
+Two method substitutions are recorded: the raw target HK packet is not
+committed, so I-1 used an independently derived packet and recomputed CRCs
+of four captured event packets; I-3a ran as a host scenario because
+Renode was not available to the reviewer. The ISVV found **no blocking
+software defect**. No Status in the traceability matrix changed, and the
+observations are carried to a future increment (OI-3). This is not a
+flight qualification.
 
 ## 5. Closure statement and open items
 
@@ -177,7 +191,7 @@ on an emulated target.
 |---|---|---|---|---|
 | OI-1 | HKS-SR-140 jitter, absolute figure | Emulated time is deterministic: 0 µs jitter says nothing about interrupt latency or contention on a real LEON3 | Run the flight image on flight-representative LEON3 hardware with a queued downlink sink, and read the DD-17 `[timing]` record (already in the flight build). Pass if `jitter_max` < 400 ms and `overruns` = 0; record the absolute SR-150 figures from the same run | No. Carried openly |
 | OI-2 | HKS-SR-170 MISRA conformance | Done at v1.0: the 6 Required findings are corrected, and the MISRA gate is in CI and clean. Still open: the addon checks part of the rule set, and clang-tidy is not run | Run clang-tidy in CI. Then either run a qualified MISRA checker, or record a manual inspection of the rules cppcheck does not implement, and log any deviation it finds | No. Carried openly |
-| OI-3 | ISVV execution | The plan is ready; the result columns are for the mentor | Mentor executes I-1 to I-4 and fills `verification/isvv-record.md` | Yes, if ISVV raises a defect |
+| OI-3 | ISVV observations | ISVV is complete with no blocking defect. It left wording points on HKS-FD-030, FD-070 and FD-080 (including CLEAR_SAFE_MODE while a critical condition persists) and an evidence gap (no raw HK packet committed) | Clarify those requirements in a future increment and preserve a raw TM[3,25] packet as qualification evidence | No. Non-blocking |
 | OI-4 | SYS-3, safe-mode state not in telemetry | HKS-FD-080 is met as written, but ground can confirm a clear only from command verification and the console | Decision: an informative TM[5,1] "safe mode exited" event (new requirement, no change to the HK report), or a status parameter in the report (changes the frozen SR-050 structure). Recommended: the event | No. It is a requirements gap, not a defect |
 | OI-5 | Target build in CI | The `target-build` job is skipped until a toolchain image is published (`RTEMS_TOOLCHAIN_IMAGE`) | Publish the image from `tools/docker/rtems7-leon3.Dockerfile` and set the variable. Until then, the target build and system tests are run by hand, as in §3.1 | No |
 
@@ -241,5 +255,5 @@ is known and has a proposed fix.
 | Role | Name | Decision | Date |
 |---|---|---|---|
 | Developer | Dat Nguyen | Submitted for closure review | 2026-10-29 |
-| Review authority | *mentor* | | |
-| Independent verifier (ISVV) | *mentor* | | |
+| Review authority | *mentor* | Accepted; see mentor closure in `verification/isvv-record.md` §4 | |
+| Independent verifier (ISVV) | *mentor* | ISVV completed, no blocking software defect | 2026-11-11 |
